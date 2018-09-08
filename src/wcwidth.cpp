@@ -59,7 +59,7 @@
  * Latest version: http://www.cl.cam.ac.uk/~mgk25/ucs/wcwidth.c
  */
 
-#include <wchar.h>
+#include <cwchar>
 #include <string>
 #include <memory>
 
@@ -73,12 +73,11 @@ struct interval {
 /* auxiliary function for binary search in interval table */
 static int bisearch(char32_t ucs, const struct interval *table, int max) {
 	int min = 0;
-	int mid;
 
 	if (ucs < table[0].first || ucs > table[max].last)
 		return 0;
 	while (max >= min) {
-		mid = (min + max) / 2;
+		int mid = (min + max) / 2;
 		if (ucs > table[mid].last)
 			min = mid + 1;
 		else if (ucs < table[mid].first)
@@ -294,9 +293,10 @@ int mk_wcwidth(char32_t ucs)
 
 int mk_wcswidth(const char32_t* pwcs, size_t n)
 {
-	int w, width = 0;
+	int width = 0;
 
 	for ( ; (n > 0) && *pwcs; ++ pwcs, -- n ) {
+		int w;
 		if ((w = mk_wcwidth(*pwcs)) < 0) {
 			return -1;
 		} else {
@@ -387,9 +387,10 @@ int mk_wcwidth_cjk(wchar_t ucs)
 
 int mk_wcswidth_cjk(const wchar_t *pwcs, size_t n)
 {
-	int w, width = 0;
+	int width = 0;
 
 	for ( ; (n > 0) && *pwcs; ++ pwcs, -- n ) {
+		int w;
 		if ((w = mk_wcwidth_cjk(*pwcs)) < 0) {
 			return -1;
 		} else {

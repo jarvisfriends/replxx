@@ -46,7 +46,7 @@ static struct termios orig_termios; /* in order to restore at exit */
 static int rawmode = 0; /* for atexit() function to check if restore is needed*/
 static int atexit_registered = 0; /* register atexit just 1 time */
 // At exit we'll try to fix the terminal to the initial conditions
-static void repl_at_exit(void) { disableRawMode(); }
+static void repl_at_exit() { disableRawMode(); }
 
 namespace tty {
 
@@ -89,14 +89,14 @@ int write32( int fd, char32_t* text32, int len32 ) {
 #endif
 }
 
-int getScreenColumns(void) {
+int getScreenColumns() {
 	int cols;
 #ifdef _WIN32
 	CONSOLE_SCREEN_BUFFER_INFO inf;
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &inf);
 	cols = inf.dwSize.X;
 #else
-	struct winsize ws;
+	struct winsize ws{};
 	cols = (ioctl(1, TIOCGWINSZ, &ws) == -1) ? 80 : ws.ws_col;
 #endif
 	// cols is 0 in certain circumstances like inside debugger, which creates
@@ -104,14 +104,14 @@ int getScreenColumns(void) {
 	return (cols > 0) ? cols : 80;
 }
 
-int getScreenRows(void) {
+int getScreenRows() {
 	int rows;
 #ifdef _WIN32
 	CONSOLE_SCREEN_BUFFER_INFO inf;
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &inf);
 	rows = 1 + inf.srWindow.Bottom - inf.srWindow.Top;
 #else
-	struct winsize ws;
+	struct winsize ws{};
 	rows = (ioctl(1, TIOCGWINSZ, &ws) == -1) ? 24 : ws.ws_row;
 #endif
 	return (rows > 0) ? rows : 24;
@@ -156,7 +156,7 @@ void setDisplayAttribute(bool enhancedDisplay, bool error) {
 #endif
 }
 
-int enableRawMode(void) {
+int enableRawMode() {
 #ifdef _WIN32
 	if ( ! console_in ) {
 		console_in = GetStdHandle( STD_INPUT_HANDLE );
@@ -171,7 +171,7 @@ int enableRawMode(void) {
 	}
 	return 0;
 #else
-	struct termios raw;
+	struct termios raw{};
 
 	if ( ! tty::in ) {
 		goto fatal;
@@ -211,7 +211,7 @@ fatal:
 #endif
 }
 
-void disableRawMode(void) {
+void disableRawMode() {
 #ifdef _WIN32
 	SetConsoleMode(console_in, oldMode);
 	SetConsoleCP( inputCodePage );
@@ -234,7 +234,7 @@ void disableRawMode(void) {
  *
  * @return	char32_t Unicode character
  */
-char32_t readUnicodeCharacter(void) {
+char32_t readUnicodeCharacter() {
 	static char8_t utf8String[5];
 	static size_t utf8Count = 0;
 	while (true) {
@@ -284,7 +284,7 @@ void beep() {
 // A return value of zero means "no input available", and a return value of -1
 // means "invalid key".
 //
-char32_t read_char(void) {
+char32_t read_char() {
 #ifdef _WIN32
 
 	INPUT_RECORD rec;
@@ -418,7 +418,7 @@ char32_t read_char(void) {
 				printf("\nret: %d\n", ret);
 			}
 			for (int i = 0; i < ret; ++i) {
-				char32_t key = static_cast<char32_t>(keys[i]);
+        auto key = static_cast<char32_t>(keys[i]);
 				char* friendlyTextPtr;
 				char friendlyTextBuf[10];
 				const char* prefixText = (key < 0x80) ? "" : "0x80+";

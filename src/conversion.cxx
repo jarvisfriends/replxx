@@ -2,7 +2,7 @@
 #include <string>
 #include <cstring>
 #include <cctype>
-#include <locale.h>
+#include <clocale>
 
 #include "conversion.hxx"
 
@@ -17,7 +17,7 @@ namespace replxx {
 namespace locale {
 
 void to_lower( std::string& s_ ) {
-	transform( s_.begin(), s_.end(), s_.begin(), static_cast<int(*)(int)>( &tolower ) );
+	transform(s_.begin(), s_.end(), s_.begin(), ::tolower);
 }
 
 bool is_8bit_encoding( void ) {
@@ -45,9 +45,9 @@ ConversionResult copyString8to32(char32_t* dst, size_t dstSize,
 																				size_t& dstCount, const char* src) {
 	ConversionResult res = ConversionResult::conversionOK;
 	if ( ! locale::is8BitEncoding ) {
-		const UTF8* sourceStart = reinterpret_cast<const UTF8*>(src);
+		const auto * sourceStart = reinterpret_cast<const UTF8*>(src);
 		const UTF8* sourceEnd = sourceStart + strlen(src);
-		UTF32* targetStart = reinterpret_cast<UTF32*>(dst);
+		auto * targetStart = reinterpret_cast<UTF32*>(dst);
 		UTF32* targetEnd = targetStart + dstSize;
 
 		res = ConvertUTF8toUTF32(
@@ -98,16 +98,16 @@ char8_t* strdup8(const char* src) {
 
 void copyString32to16(char16_t* dst, size_t dstSize, size_t* dstCount,
 														 const char32_t* src, size_t srcSize) {
-	const UTF32* sourceStart = reinterpret_cast<const UTF32*>(src);
+	const auto * sourceStart = reinterpret_cast<const UTF32*>(src);
 	const UTF32* sourceEnd = sourceStart + srcSize;
-	char16_t* targetStart = reinterpret_cast<char16_t*>(dst);
+	char16_t* targetStart = dst;
 	char16_t* targetEnd = targetStart + dstSize;
 
 	ConversionResult res = ConvertUTF32toUTF16(
 			&sourceStart, sourceEnd, &targetStart, targetEnd, lenientConversion);
 
 	if (res == conversionOK) {
-		*dstCount = targetStart - reinterpret_cast<char16_t*>(dst);
+		*dstCount = targetStart - dst;
 
 		if (*dstCount < dstSize) {
 			*targetStart = 0;
@@ -118,9 +118,9 @@ void copyString32to16(char16_t* dst, size_t dstSize, size_t* dstCount,
 void copyString32to8(char* dst, size_t dstSize, size_t* dstCount,
 														const char32_t* src, size_t srcSize) {
 	if ( ! locale::is8BitEncoding ) {
-		const UTF32* sourceStart = reinterpret_cast<const UTF32*>(src);
+		const auto * sourceStart = reinterpret_cast<const UTF32*>(src);
 		const UTF32* sourceEnd = sourceStart + srcSize;
-		UTF8* targetStart = reinterpret_cast<UTF8*>(dst);
+		auto * targetStart = reinterpret_cast<UTF8*>(dst);
 		UTF8* targetEnd = targetStart + dstSize;
 
 		ConversionResult res = ConvertUTF32toUTF8(

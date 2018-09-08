@@ -1,5 +1,5 @@
 #include <cstdlib>
-#include <wctype.h>
+#include <cwctype>
 
 #include "util.hxx"
 #include "keycodes.hxx"
@@ -10,7 +10,7 @@ bool isCharacterAlphanumeric(char32_t testChar) {
 #ifdef _WIN32
 	return (iswalnum((wint_t)testChar) != 0 ? true : false);
 #else
-	return (iswalnum(testChar) != 0 ? true : false);
+	return iswalnum(testChar) != 0;
 #endif
 }
 

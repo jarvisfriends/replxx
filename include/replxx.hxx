@@ -57,7 +57,7 @@ public:
 		BRIGHTMAGENTA = 13,
 		BRIGHTCYAN    = 14,
 		WHITE         = 15,
-		NORMAL        = LIGHTGRAY,
+		NORMAL        = static_cast<int>(LIGHTGRAY),
 		DEFAULT       = -1,
 #undef ERROR
 		ERROR         = -2

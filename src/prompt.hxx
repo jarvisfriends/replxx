@@ -36,9 +36,9 @@ extern Utf32String previousSearchText;	// remembered across invocations of replx
 // changing prompt for "(reverse-i-search)`text':" etc.
 //
 struct DynamicPrompt : public PromptBase {
-	Utf32String searchText;	// text we are searching for
-	char* searchCharWidths;	// character widths from mk_wcwidth()
-	int searchTextLen;			 // chars in searchText
+	Utf32String searchText{};	// text we are searching for
+	char* searchCharWidths{nullptr};	// character widths from mk_wcwidth()
+	int searchTextLen{0};			 // chars in searchText
 	int direction;					 // current search direction, 1=forward, -1=reverse
 
 	DynamicPrompt(PromptBase& pi, int initialDirection);

@@ -18,7 +18,7 @@
 #else /* _WIN32 */
 
 #include <unistd.h>
-#include <signal.h>
+#include <csignal>
 
 #endif /* _WIN32 */
 
@@ -33,8 +33,6 @@
 using namespace std;
 
 namespace replxx {
-
-struct PromptBase;
 
 void dynamicRefresh(PromptBase& pi, char32_t* buf32, int len, int pos);
 
@@ -208,7 +206,8 @@ void InputBuffer::refreshLine(PromptBase& pi, HINT_ACTION hintAction_) {
 	bool indicateError = false;
 	if (_pos < _len) {
 		/* this scans for a brace matching _buf32[_pos] to highlight */
-		unsigned char part1, part2;
+		unsigned char part1 = 0;
+		unsigned char part2 = 0;
 		int scanDirection = 0;
 		if (strchr("}])", _buf32[_pos])) {
 			scanDirection = -1; /* backwards */
@@ -385,14 +384,13 @@ int InputBuffer::completeLine(PromptBase& pi) {
 	Replxx::ReplxxImpl::completions_t completions( _replxx.call_completer( parseItem.get(), startIndex ) );
 
 	// if no completions, we are done
-	if (completions.size() == 0) {
+	if (completions.empty()) {
 		beep();
 		return 0;
 	}
 
 	// at least one completion
 	int longestCommonPrefix = 0;
-	int displayLength = 0;
 	int completionsCount( completions.size() );
 	int selectedCompletion( 0 );
 	if ( _hintSelection != -1 ) {
@@ -423,7 +421,7 @@ int InputBuffer::completeLine(PromptBase& pi) {
 
 	// if we can extend the item, extend it and return to main loop
 	if ( ( longestCommonPrefix > itemLength ) || ( completionsCount == 1 ) ) {
-		displayLength = _len + longestCommonPrefix - itemLength;
+		int displayLength = _len + longestCommonPrefix - itemLength;
 		if (displayLength > _buflen) {
 			longestCommonPrefix -= displayLength - _buflen; // don't overflow buffer
 			displayLength = _buflen;                        // truncate the insertion
@@ -1261,7 +1259,7 @@ int InputBuffer::incrementalHistorySearch(PromptBase& pi, int startChar) {
 	bool keepLooping = true;
 	bool useSearchedLine = true;
 	bool searchAgain = false;
-	char32_t* activeHistoryLine = 0;
+	char32_t* activeHistoryLine = nullptr;
 	while (keepLooping) {
 		c = read_char();
 		c = cleanupCtrl(c);	// convert CTRL + <char> into normal ctrl
@@ -1393,18 +1391,15 @@ int InputBuffer::incrementalHistorySearch(PromptBase& pi, int startChar) {
 
 		// if we are staying in search mode, search now
 		if (keepLooping) {
-			bufferSize = historyLineLength + 1;
-			if (activeHistoryLine) {
-				delete[] activeHistoryLine;
-				activeHistoryLine = nullptr;
-			}
-			activeHistoryLine = new char32_t[bufferSize];
+      bufferSize = historyLineLength + 1;
+      delete[] activeHistoryLine;
+      activeHistoryLine = new char32_t[bufferSize];
 			copyString8to32(activeHistoryLine, bufferSize, ucharCount,
 											_history.current().c_str());
 			if (dp.searchTextLen > 0) {
 				bool found = false;
 				int historySearchIndex = _history.current_pos();
-				int lineLength = static_cast<int>(ucharCount);
+				auto lineLength = static_cast<int>(ucharCount);
 				int lineSearchPos = historyLinePosition;
 				if (searchAgain) {
 					lineSearchPos += dp.direction;
@@ -1431,7 +1426,6 @@ int InputBuffer::incrementalHistorySearch(PromptBase& pi, int startChar) {
 						historySearchIndex += dp.direction;
 						bufferSize = _history[historySearchIndex].length() + 1;
 						delete[] activeHistoryLine;
-						activeHistoryLine = nullptr;
 						activeHistoryLine = new char32_t[bufferSize];
 						copyString8to32(activeHistoryLine, bufferSize, ucharCount,
 														_history[historySearchIndex].c_str());

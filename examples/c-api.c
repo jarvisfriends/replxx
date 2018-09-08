@@ -30,6 +30,7 @@ void hintHook(char const* prefix, int bp, replxx_hints* lc, ReplxxColor* c, void
 }
 
 void colorHook( char const* str_, ReplxxColor* colors_, int size_, void* ud ) {
+	(void)ud;
 	int i = 0;
 	for ( ; i < size_; ++ i ) {
 		if ( isdigit( str_[i] ) ) {
