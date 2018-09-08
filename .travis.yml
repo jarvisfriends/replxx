@@ -8,6 +8,7 @@ addons:
   apt:
     packages:
       - cmake
+      - ninja-build
       - g++-6
     sources:
       - ubuntu-toolchain-r-test
@@ -19,12 +20,12 @@ before_install:
   - eval "${MATRIX_EVAL}"
 script:
   - mkdir -p build && cd build
-  - cmake ..
-  - make
+  - cmake -GNinja ..
+  - ninja
   - cd ..
   - mkdir -p build_sonar_scanner && cd build_sonar_scanner
-  - cmake ..
-  - build-wrapper-linux-x86-64 --out-dir ../bw-output/ 'make'
+  - cmake -GNinja ..
+  - build-wrapper-linux-x86-64 --out-dir ../bw-output/ 'ninja'
   - cd ..
   - sonar-scanner
 language: c++
