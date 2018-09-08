@@ -8,8 +8,15 @@ addons:
   apt:
     packages:
       - cmake
+      - g++-6
+    sources:
+      - ubuntu-toolchain-r-test
   sonarcloud:
     organization: jarvisfriends
+env:
+  - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+before_install:
+  - eval "${MATRIX_EVAL}"
 script:
   - mkdir -p build && cd build
   - cmake ..

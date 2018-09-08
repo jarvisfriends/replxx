@@ -50,10 +50,10 @@ static const int halfShift  = 10; /* used for shifting by 10 bits */
 static const UTF32 halfBase = 0x0010000UL;
 static const UTF32 halfMask = 0x3FFUL;
 
-#define UNI_SUR_HIGH_START  (UTF32)0xD800
-#define UNI_SUR_HIGH_END    (UTF32)0xDBFF
-#define UNI_SUR_LOW_START   (UTF32)0xDC00
-#define UNI_SUR_LOW_END     (UTF32)0xDFFF
+static const UTF32 UNI_SUR_HIGH_START  = 0xD800;
+static const UTF32 UNI_SUR_HIGH_END    = 0xDBFF;
+static const UTF32 UNI_SUR_LOW_START   = 0xDC00;
+static const UTF32 UNI_SUR_LOW_END     = 0xDFFF;
 
 /* --------------------------------------------------------------------- */
 
@@ -112,15 +112,14 @@ ConversionResult ConvertUTF16toUTF32 (
 		ConversionResult result = conversionOK;
 		const UTF16* source = *sourceStart;
 		UTF32* target = *targetStart;
-		UTF32 ch, ch2;
 		while (source < sourceEnd) {
 				const UTF16* oldSource = source; /*	In case we have to back up because of target overflow. */
-				ch = *source++;
+				UTF32 ch = *source++;
 				/* If we have a surrogate pair, convert to UTF32 first. */
 				if (ch >= UNI_SUR_HIGH_START && ch <= UNI_SUR_HIGH_END) {
 						/* If the 16 bits following the high surrogate are in the source buffer... */
 						if (source < sourceEnd) {
-								ch2 = *source;
+								UTF32 ch2 = *source;
 								/* If it's a low surrogate, convert to UTF32. */
 								if (ch2 >= UNI_SUR_LOW_START && ch2 <= UNI_SUR_LOW_END) {
 										ch = ((ch - UNI_SUR_HIGH_START) << halfShift)
@@ -313,9 +312,8 @@ static bool isLegalUTF8(const UTF8 *source, int length) {
 		} /* fall through */
 		case 1: { if (*source >= 0x80 && *source < 0xC2) return false; } /* fall through */
 		}
-		if (*source > 0xF4) return false;
-		return true;
-}
+		return *source <= 0xF4;
+	}
 
 /* --------------------------------------------------------------------- */
 

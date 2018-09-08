@@ -24,9 +24,8 @@
 namespace replxx {
 
 bool PromptBase::write() {
-	if (write32(1, promptText.get(), promptBytes) == -1) return false;
+	return write32(1, promptText.get(), promptBytes) != -1;
 
-	return true;
 }
 
 PromptInfo::PromptInfo(std::string const& text_, int columns) {
@@ -112,11 +111,9 @@ const Utf32String endSearchBasePrompt("': ");
 Utf32String previousSearchText;	// remembered across invocations of replxx_input()
 
 DynamicPrompt::DynamicPrompt(PromptBase& pi, int initialDirection)
-		: searchTextLen(0), direction(initialDirection) {
+		: direction(initialDirection) {
 	promptScreenColumns = pi.promptScreenColumns;
 	promptCursorRowOffset = 0;
-	Utf32String emptyString(1);
-	searchText = emptyString;
 	const Utf32String* basePrompt =
 			(direction > 0) ? &forwardSearchBasePrompt : &reverseSearchBasePrompt;
 	size_t promptStartLength = basePrompt->length();
@@ -138,7 +135,7 @@ DynamicPrompt::DynamicPrompt(PromptBase& pi, int initialDirection)
 													promptIndentation, promptExtraLines);
 }
 
-void DynamicPrompt::updateSearchPrompt(void) {
+void DynamicPrompt::updateSearchPrompt() {
 	const Utf32String* basePrompt =
 			(direction > 0) ? &forwardSearchBasePrompt : &reverseSearchBasePrompt;
 	size_t promptStartLength = basePrompt->length();

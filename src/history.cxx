@@ -16,7 +16,7 @@ namespace replxx {
 
 static int const REPLXX_DEFAULT_HISTORY_MAX_LEN( 1000 );
 
-History::History( void )
+History::History()
 	: _data()
 	, _maxSize( REPLXX_DEFAULT_HISTORY_MAX_LEN )
 	, _index( 0 )

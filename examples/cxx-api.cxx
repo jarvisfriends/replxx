@@ -12,7 +12,7 @@ using Replxx = replxx::Replxx;
 // prototypes
 Replxx::completions_t hook_completion(std::string const& context, int index, void* user_data);
 Replxx::hints_t hook_hint(std::string const& context, int index, Replxx::Color& color, void* user_data);
-void hook_color(std::string const& str, Replxx::colors_t& colors, void* user_data);
+void hook_color(std::string const& context, Replxx::colors_t& colors, void* user_data);
 
 Replxx::completions_t hook_completion(std::string const& context, int index, void* user_data) {
 	auto* examples = static_cast<std::vector<std::string>*>(user_data);
@@ -222,7 +222,7 @@ int main() {
 
 		} else if (input.compare(0, 7, ".prompt") == 0) {
 			// set the repl prompt text
-			auto pos = input.find(" ");
+			auto pos = input.find(' ');
 			if (pos == std::string::npos) {
 				std::cout << "Error: '.prompt' missing argument\n";
 			} else {

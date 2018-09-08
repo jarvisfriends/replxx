@@ -93,7 +93,7 @@ typedef unsigned short UTF16; /* at least 16 bits */
 typedef unsigned char	UTF8;	/* typically 8 bits */
 #endif
 
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 
 namespace replxx {
