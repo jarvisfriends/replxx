@@ -269,6 +269,7 @@ ConversionResult ConvertUTF16toUTF8 (
 						case 3: *--target = (UTF8)((ch | byteMark) & byteMask); ch >>= 6; /* fall through */
 						case 2: *--target = (UTF8)((ch | byteMark) & byteMask); ch >>= 6; /* fall through */
 						case 1: *--target =	(UTF8)(ch | firstByteMark[bytesToWrite]); /* fall through */
+						default: break;
 				}
 				target += bytesToWrite;
 		}

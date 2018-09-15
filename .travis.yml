@@ -1,6 +1,8 @@
 os: linux
 dist: trusty
 sudo: true
+git:
+  submodules: true
 cache:
   ccache: true
 group: stable
