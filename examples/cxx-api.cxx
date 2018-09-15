@@ -198,15 +198,11 @@ int main() {
 
 		if (input.empty()) {
 			// user hit enter on an empty line
-
-			continue;
-
 		} else if (input.compare(0, 5, ".quit") == 0 || input.compare(0, 5, ".exit") == 0) {
 			// exit the repl
 
 			rx.history_add(input);
 			break;
-
 		} else if (input.compare(0, 5, ".help") == 0) {
 			// display the help output
 			std::cout
@@ -218,8 +214,6 @@ int main() {
 			<< ".prompt <str>\n\tset the repl prompt to <str>\n";
 
 			rx.history_add(input);
-			continue;
-
 		} else if (input.compare(0, 7, ".prompt") == 0) {
 			// set the repl prompt text
 			auto pos = input.find(' ');
@@ -230,8 +224,6 @@ int main() {
 			}
 
 			rx.history_add(input);
-			continue;
-
 		} else if (input.compare(0, 8, ".history") == 0) {
 			// display the current history
 			for (size_t i = 0, sz = rx.history_size(); i < sz; ++i) {
@@ -239,22 +231,17 @@ int main() {
 			}
 
 			rx.history_add(input);
-			continue;
-
 		} else if (input.compare(0, 6, ".clear") == 0) {
 			// clear the screen
 			rx.clear_screen();
 
 			rx.history_add(input);
-			continue;
-
 		} else {
 			// default action
 			// echo the input
 			std::cout << input << "\n";
 
 			rx.history_add(input);
-			continue;
 		}
 	}
 
