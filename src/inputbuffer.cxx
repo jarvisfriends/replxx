@@ -91,6 +91,7 @@ char const* ansi_color( Replxx::Color color_ ) {
 		case Replxx::Color::WHITE:         code = white;         break;
 		case Replxx::Color::ERROR:         code = error;         break;
 		case Replxx::Color::DEFAULT:       code = reset;         break;
+		default:                           code = reset;         break;
 	}
 	return ( code );
 }
@@ -221,13 +222,10 @@ void InputBuffer::refreshLine(PromptBase& pi, HINT_ACTION hintAction_) {
 		} else if (strchr("{[(", _buf32[_pos])) {
 			scanDirection = 1; /* forwards */
 			if (_buf32[_pos] == '{') {
-				//part1 = '{'; part2 = '}';
 				part1 = '}'; part2 = '{';
 			} else if (_buf32[_pos] == '[') {
-				//part1 = '['; part2 = ']';
 				part1 = ']'; part2 = '[';
 			} else {
-				//part1 = '('; part2 = ')';
 				part1 = ')'; part2 = '(';
 			}
 		}

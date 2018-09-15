@@ -19,7 +19,9 @@ private:
 	bool _recallMostRecent;
 public:
 	History( void );
-	void add( std::string const& line );
+	~History() = default;
+
+  void add( std::string const& line );
 	int save( std::string const& filename );
 	int load( std::string const& filename );
 	void set_max_size( int len );

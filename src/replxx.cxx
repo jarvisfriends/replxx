@@ -370,7 +370,7 @@ void Replxx::ReplxxImpl::clear_screen() {
 
 int Replxx::ReplxxImpl::install_window_change_handler() {
 #ifndef _WIN32
-	struct sigaction sa{};
+	struct sigaction sa;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
 	sa.sa_handler = &WindowSizeChanged;

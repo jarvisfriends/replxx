@@ -17,6 +17,7 @@ void completionHook(char const* prefix, int bp, replxx_completions* lc, void* ud
 }
 
 void hintHook(char const* prefix, int bp, replxx_hints* lc, ReplxxColor* c, void* ud) {
+	(void)c; // Unused
 	char** examples = (char**)( ud );
 	size_t i;
 	size_t len = strlen( prefix );

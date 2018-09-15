@@ -1,6 +1,6 @@
 # -*- mode: CMAKE; -*-
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1)
 
 project( replxx VERSION 0.0.2 LANGUAGES CXX C )
 
@@ -21,10 +21,11 @@ set(REPLXX_URL_INFO_ABOUT "https://github.com/AmokHuginnsson/replxx")
 set(REPLXX_CONTACT "amok@codestation.org")
 set(REPLXX_FRIENDLY_STRING "replxx - Read Evaluate Print Loop library")
 
+set(CMAKE_CXX_STANDARD 11)
 # compiler options
 if(CMAKE_COMPILER_IS_GNUCXX)
   message(STATUS "Compiler type GNU: ${CMAKE_CXX_COMPILER}")
-	set(BASE_COMPILER_OPTIONS "-std=c++11 -Wall -Wextra -D_GNU_SOURCE")
+	set(BASE_COMPILER_OPTIONS "-Wall -Wextra -D_GNU_SOURCE")
   set(CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} ${BASE_COMPILER_OPTIONS}")
   set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG} ${BASE_COMPILER_OPTIONS} -O0 -g")
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
@@ -34,7 +35,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 elseif(CMAKE_COMPILER_IS_CLANGCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # using regular Clang or AppleClang
   message(STATUS "Compiler type CLANG: ${CMAKE_CXX_COMPILER}")
-  set(BASE_COMPILER_OPTIONS "-std=c++11 -Wall -Wextra -D_GNU_SOURCE")
+  set(BASE_COMPILER_OPTIONS "-Wall -Wextra -D_GNU_SOURCE")
   set(CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} ${BASE_COMPILER_OPTIONS}")
   set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG} ${BASE_COMPILER_OPTIONS} -O0 -g")
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
@@ -52,7 +53,7 @@ elseif(MSVC)
 else()
   # unknown compiler
   message(STATUS "Compiler type UNKNOWN: ${CMAKE_CXX_COMPILER}")
-  set(BASE_COMPILER_OPTIONS "-std=c++11 -Wall -Wextra")
+  set(BASE_COMPILER_OPTIONS "-Wall -Wextra")
   set(CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} ${BASE_COMPILER_OPTIONS}")
   set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG} ${BASE_COMPILER_OPTIONS} -O0 -g")
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
@@ -61,9 +62,7 @@ else()
 
 endif()
 
-# build libreplxx
-add_library(
-  replxx
+set(SRC_FILES
   src/conversion.cxx
   src/ConvertUTF.cpp
   src/escape.cxx
@@ -74,7 +73,17 @@ add_library(
   src/replxx.cxx
   src/util.cxx
   src/wcwidth.cpp
+  )
+
+IF (WIN32)
+list(APPEND SRC_FILES
   src/windows.cxx
+  )
+ENDIF()
+# build libreplxx
+add_library(
+  replxx
+  ${SRC_FILES}
 )
 
 add_library(Replxx::Replxx ALIAS replxx)
@@ -82,6 +91,19 @@ add_library(Replxx::Replxx ALIAS replxx)
 target_include_directories(replxx
    PUBLIC ${PROJECT_SOURCE_DIR}/include
    PRIVATE ${PROJECT_SOURCE_DIR}/src)
+
+enable_testing()
+
+include(cmake/gtest.cmake)
+find_package (Threads)
+add_executable(replxx_test
+  test/history_test.cpp test/replxx_cpp_interface_text.cpp)
+target_link_libraries(replxx_test gtest ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(replxx_test replxx)
+target_include_directories(replxx_test
+  PRIVATE ${PROJECT_SOURCE_DIR}/include
+  PRIVATE ${PROJECT_SOURCE_DIR}/src
+  PRIVATE ${PROJECT_SOURCE_DIR}/googletest/googletest/include)
 
 # install
 install(TARGETS replxx DESTINATION lib)

@@ -28,6 +28,8 @@
 #include "escape.hxx"
 #include "keycodes.hxx"
 
+#define _DEBUG_LINUX_KEYBOARD
+
 using namespace std;
 
 namespace replxx {
@@ -96,7 +98,7 @@ int getScreenColumns() {
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &inf);
 	cols = inf.dwSize.X;
 #else
-	struct winsize ws{};
+	struct winsize ws;
 	cols = (ioctl(1, TIOCGWINSZ, &ws) == -1) ? 80 : ws.ws_col;
 #endif
 	// cols is 0 in certain circumstances like inside debugger, which creates
@@ -111,7 +113,7 @@ int getScreenRows() {
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &inf);
 	rows = 1 + inf.srWindow.Bottom - inf.srWindow.Top;
 #else
-	struct winsize ws{};
+	struct winsize ws;
 	rows = (ioctl(1, TIOCGWINSZ, &ws) == -1) ? 24 : ws.ws_row;
 #endif
 	return (rows > 0) ? rows : 24;
@@ -171,7 +173,7 @@ int enableRawMode() {
 	}
 	return 0;
 #else
-	struct termios raw{};
+	struct termios raw;
 
 	if ( ! tty::in ) {
 		goto fatal;
@@ -403,7 +405,6 @@ char32_t read_char() {
 // program
 // gives us on different keystrokes.	Hit ctrl-C to exit this mode.
 //
-#define _DEBUG_LINUX_KEYBOARD
 #if defined(_DEBUG_LINUX_KEYBOARD)
 	if (c == ctrlChar('^')) {	// ctrl-^, special debug mode, prints all keys hit,
 														 // ctrl-C to get out
