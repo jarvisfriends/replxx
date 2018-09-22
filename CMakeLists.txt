@@ -3,8 +3,9 @@
 cmake_minimum_required(VERSION 3.1)
 
 project( replxx VERSION 0.0.2 LANGUAGES CXX C )
+string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPER)
 
-option(REPLXX_BuildExamples "Build the examples." ON)
+option(${PROJECT_NAME_UPPER}_BuildExamples "Build the examples." ON)
 option(BUILD_SHARED_LIBS "Build as a shared library" OFF)
 
 set( CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/build" )
@@ -16,10 +17,10 @@ endif()
 message(STATUS "Build mode: ${CMAKE_BUILD_TYPE}")
 
 # INFO
-set(REPLXX_DISPLAY_NAME "replxx")
-set(REPLXX_URL_INFO_ABOUT "https://github.com/AmokHuginnsson/replxx")
-set(REPLXX_CONTACT "amok@codestation.org")
-set(REPLXX_FRIENDLY_STRING "replxx - Read Evaluate Print Loop library")
+set(${PROJECT_NAME_UPPER}_DISPLAY_NAME "${PROJECT_NAME}")
+set(${PROJECT_NAME_UPPER}_URL_INFO_ABOUT "https://github.com/AmokHuginnsson/replxx")
+set(${PROJECT_NAME_UPPER}CONTACT "amok@codestation.org")
+set(${PROJECT_NAME_UPPER}_FRIENDLY_STRING "replxx - Read Evaluate Print Loop library")
 
 set(CMAKE_CXX_STANDARD 11)
 # compiler options
@@ -82,36 +83,51 @@ list(APPEND SRC_FILES
 ENDIF()
 # build libreplxx
 add_library(
-  replxx
+  ${PROJECT_NAME}
   ${SRC_FILES}
 )
 
-add_library(Replxx::Replxx ALIAS replxx)
+add_library(Replxx::Replxx ALIAS ${PROJECT_NAME})
 
-target_include_directories(replxx
+target_include_directories(${PROJECT_NAME}
    PUBLIC ${PROJECT_SOURCE_DIR}/include
    PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
+# Unit Tests
 enable_testing()
-
 include(cmake/gtest.cmake)
 find_package (Threads)
-add_executable(replxx_test
+add_executable(${PROJECT_NAME}_test
   test/history_test.cpp test/replxx_cpp_interface_text.cpp)
-target_link_libraries(replxx_test gtest ${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries(replxx_test replxx)
-target_include_directories(replxx_test
+target_link_libraries(${PROJECT_NAME}_test PRIVATE gtest
+  ${PROJECT_NAME}
+  ${CMAKE_THREAD_LIBS_INIT})
+target_include_directories(${PROJECT_NAME}_test
   PRIVATE ${PROJECT_SOURCE_DIR}/include
   PRIVATE ${PROJECT_SOURCE_DIR}/src
   PRIVATE ${PROJECT_SOURCE_DIR}/googletest/googletest/include)
+add_test(AllTests_${PROJECT_NAME} ${PROJECT_NAME}_test)
+
+# Code Coverage
+include(cmake/CodeCoverage.cmake)
+SETUP_TARGET_FOR_COVERAGE_GCOVR_XML(
+   NAME ctest_coverage                    # New target name
+   EXECUTABLE ctest -j                    # Executable in PROJECT_BINARY_DIR
+   DEPENDENCIES ${PROJECT_NAME}_test      # Dependencies to build first
+)
+
+set(Coverage_NAME "${PROJECT_NAME}_coverage")
+#APPEND_COVERAGE_COMPILER_FLAGS()
+#SETUP_TARGET_FOR_COVERAGE(${PROJECT_NAME}_coverage ${PROJECT_NAME}_test .)
+#SETUP_TARGET_FOR_COVERAGE_GCOVR_XML(${PROJECT_NAME}_coverage ${PROJECT_NAME}_test .)
 
 # install
-install(TARGETS replxx DESTINATION lib)
+install(TARGETS ${PROJECT_NAME} DESTINATION lib)
 
 # headers
 install(FILES include/replxx.hxx include/replxx.h DESTINATION include)
 
-if (REPLXX_BuildExamples)
+if (${PROJECT_NAME_UPPER}_BuildExamples)
     # build example
     add_executable(
         example-c-api
@@ -125,7 +141,7 @@ if (REPLXX_BuildExamples)
 
     target_link_libraries(
         example-cxx-api
-        PRIVATE replxx
+        PRIVATE ${PROJECT_NAME}
     )
 
     if ( NOT MSVC )
@@ -134,7 +150,7 @@ if (REPLXX_BuildExamples)
 
     target_link_libraries(
         example-c-api
-        PRIVATE replxx ${CXX_LIB}
+        PRIVATE ${PROJECT_NAME} ${CXX_LIB}
     )
 endif()
 
@@ -142,7 +158,7 @@ endif()
 include(CPack)
 
 if (MSVC)
-	set_target_properties( replxx PROPERTIES RELEASE_OUTPUT_NAME replxx DEBUG_OUTPUT_NAME replxx-d )
+	set_target_properties( ${PROJECT_NAME} PROPERTIES RELEASE_OUTPUT_NAME ${PROJECT_NAME} DEBUG_OUTPUT_NAME ${PROJECT_NAME}-d )
 else ()
   set(CPACK_SET_DESTDIR ON)
 endif ()
@@ -155,5 +171,5 @@ set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
 
 set(CPACK_STRIP_FILES "ON")
 
-set(CPACK_PACKAGE_NAME "replxx")
+set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
 set(CPACK_DEBIAN_PACKAGE_SECTION "utilities")

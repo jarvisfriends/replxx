@@ -12,6 +12,7 @@ addons:
       - cmake
       - ninja-build
       - g++-6
+      - gcovr
     sources:
       - ubuntu-toolchain-r-test
   sonarcloud:
@@ -21,7 +22,7 @@ addons:
       name: jarvisfriends/replxx
       description: The Jarvis Friends Replxx CLI
     notification_email: amarcum@gmail.com
-    build_command: mkdir -p build_coverity && cd build_coverity && cmake -GNinja .. && ninja
+    build_command: mkdir -p build_coverity && cd build_coverity && cmake -GNinja .. && ninja && ninja test
     branch_pattern: coverity_scan
 env:
   - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
@@ -39,7 +40,8 @@ script:
   - cd ..
   - mkdir -p build_sonar_scanner && cd build_sonar_scanner
   - cmake -GNinja ..
-  - build-wrapper-linux-x86-64 --out-dir ../bw-output/ 'ninja'
+  - build-wrapper-linux-x86-64 --out-dir ../bw-output/ ninja ctest_coverage
+  - ninja ctest_coverage
   - cd ..
   - sonar-scanner
 language: c++
