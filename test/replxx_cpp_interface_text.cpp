@@ -188,9 +188,6 @@ namespace replxx {
     // set the max history size
     p_replxx->set_max_history_size(12);
 
-    // set the max input line size
-    p_replxx->set_max_line_size(128);
-
     // set the max number of hint rows to show
     p_replxx->set_max_hint_rows(8);
 
