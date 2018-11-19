@@ -17,31 +17,20 @@ addons:
       - ubuntu-toolchain-r-test
   sonarcloud:
     organization: jarvisfriends
-  coverity_scan:
-    project:
-      name: jarvisfriends/replxx
-      description: The Jarvis Friends Replxx CLI
-    notification_email: amarcum@gmail.com
-    build_command: mkdir -p build_coverity && cd build_coverity && cmake -GNinja .. && ninja && ninja test
-    branch_pattern: coverity_scan
 env:
   - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-  # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-  #   via the "travis encrypt" command using the project repo's public key
-  - secure: "nCTuV5LnAi1PGCue9BuOHLBSb0hrfBFQYg/FEqXWMW5WHykLWRLqUuBP73FI7pKS/DGmTHjNtMRLwyubdSb4YmqZuhXX/qiGzyABeJfbsRzEFc69UNoeJvbbT0ug9dyXQT6PxqrC0DQVk8IZk/0PiXzf/WXZS/kbxQJdCsx+r3N+GKST8Ig1E5Mdh3BwARVdJZ/bdJicDz5BGejiyQgvxRVcd0jp7elpTFlaO2Qu8UI6wEJcYVmYPvCufkepc+/98Nh/twP89UeiamoQvIdFwGRX6RugtlAeYncXaowgZAtIO499OQWwtweCCiijXfanWzra+mu/rrVFS03CDu6gRqygntxHtbao3KwNJy/qFLq1PzztvXuRUMFpMg2arKkpsNOcSR+042EuOvW4F4DaaJWASSgERFLTpPgzYlOPM3hURDUFbASgZF02hxrYz/8TVGG94pb1cSOzGwFep7OFDKwtS0isR1YJRjRikHAwn/CtzuapDiQLhUuH8aqBgSvZjOK4b/xu13wYG60p0cIZFe6vrl6uSwUHn5PIUmcEUnNkLlU53NnR5vjcf3MbdFh8xAFte2wesdA8QlwwAH1zLcU+mwUXABNoySIi39QzyXMlQ8wct363sST8RpYBnadzn+R0jOFmL1NYk+Mip5MtN2BLq31I/Sciu1b6lfZf8Pw="
 
 before_install:
   - eval "${MATRIX_EVAL}"
-  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 script:
   - mkdir -p build && cd build
   - cmake -GNinja ..
   - ninja
   - cd ..
   - mkdir -p build_sonar_scanner && cd build_sonar_scanner
-  - cmake -GNinja ..
-  - build-wrapper-linux-x86-64 --out-dir ../bw-output/ ninja ctest_coverage
-  - ninja ctest_coverage
+  - cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
+  - build-wrapper-linux-x86-64 --out-dir ../bw-output/ ninja
+  - ninja
   - cd ..
   - sonar-scanner
-language: c++
+language: cpp
