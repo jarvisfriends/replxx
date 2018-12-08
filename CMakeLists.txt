@@ -22,11 +22,13 @@ set(${PROJECT_NAME_UPPER}_URL_INFO_ABOUT "https://github.com/AmokHuginnsson/repl
 set(${PROJECT_NAME_UPPER}CONTACT "amok@codestation.org")
 set(${PROJECT_NAME_UPPER}_FRIENDLY_STRING "replxx - Read Evaluate Print Loop library")
 
-set(CMAKE_CXX_STANDARD 11)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 11)
+endif()
 # compiler options
 if(CMAKE_COMPILER_IS_GNUCXX)
   message(STATUS "Compiler type GNU: ${CMAKE_CXX_COMPILER}")
-	set(BASE_COMPILER_OPTIONS "-Wall -Wextra -D_GNU_SOURCE")
+	set(BASE_COMPILER_OPTIONS "-Wall -Wextra -Wpedantic -D_GNU_SOURCE")
   set(CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} ${BASE_COMPILER_OPTIONS}")
   set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG} ${BASE_COMPILER_OPTIONS} -O0 -g")
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
@@ -36,7 +38,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 elseif(CMAKE_COMPILER_IS_CLANGCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # using regular Clang or AppleClang
   message(STATUS "Compiler type CLANG: ${CMAKE_CXX_COMPILER}")
-  set(BASE_COMPILER_OPTIONS "-Wall -Wextra -D_GNU_SOURCE")
+  set(BASE_COMPILER_OPTIONS "-Wall -Wextra -Wpedantic -D_GNU_SOURCE")
   set(CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} ${BASE_COMPILER_OPTIONS}")
   set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG} ${BASE_COMPILER_OPTIONS} -O0 -g")
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
@@ -54,7 +56,7 @@ elseif(MSVC)
 else()
   # unknown compiler
   message(STATUS "Compiler type UNKNOWN: ${CMAKE_CXX_COMPILER}")
-  set(BASE_COMPILER_OPTIONS "-Wall -Wextra")
+  set(BASE_COMPILER_OPTIONS "-Wall -Wextra -Wpedantic")
   set(CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} ${BASE_COMPILER_OPTIONS}")
   set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG} ${BASE_COMPILER_OPTIONS} -O0 -g")
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
@@ -93,33 +95,39 @@ target_include_directories(${PROJECT_NAME}
    PUBLIC ${PROJECT_SOURCE_DIR}/include
    PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
+# Download and unpack googletest at configure time
+configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
+execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+  RESULT_VARIABLE result
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+if(result)
+  message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+endif()
+execute_process(COMMAND ${CMAKE_COMMAND} --build .
+  RESULT_VARIABLE result
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+if(result)
+  message(FATAL_ERROR "Build step for googletest failed: ${result}")
+endif()
+# Add googletest directly to our build. This defines
+# the gtest and gtest_main targets.
+add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
+  ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+  EXCLUDE_FROM_ALL)
+
 # Unit Tests
 enable_testing()
-include(cmake/gtest.cmake)
 find_package (Threads)
 add_executable(${PROJECT_NAME}_test
-  test/history_test.cpp test/replxx_cpp_interface_text.cpp)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE gtest
-  ${PROJECT_NAME}
-  ${CMAKE_THREAD_LIBS_INIT})
+  test/history_test.cpp
+  test/replxx_cpp_interface_text.cpp)
+target_link_libraries(${PROJECT_NAME}_test
+  PRIVATE gtest_main
+  ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME}_test
   PRIVATE ${PROJECT_SOURCE_DIR}/include
-  PRIVATE ${PROJECT_SOURCE_DIR}/src
-  PRIVATE ${PROJECT_SOURCE_DIR}/googletest/googletest/include)
+  PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_test(AllTests_${PROJECT_NAME} ${PROJECT_NAME}_test)
-
-# Code Coverage
-include(cmake/CodeCoverage.cmake)
-SETUP_TARGET_FOR_COVERAGE_GCOVR_XML(
-   NAME ctest_coverage                    # New target name
-   EXECUTABLE ctest -j                    # Executable in PROJECT_BINARY_DIR
-   DEPENDENCIES ${PROJECT_NAME}_test      # Dependencies to build first
-)
-
-set(Coverage_NAME "${PROJECT_NAME}_coverage")
-#APPEND_COVERAGE_COMPILER_FLAGS()
-#SETUP_TARGET_FOR_COVERAGE(${PROJECT_NAME}_coverage ${PROJECT_NAME}_test .)
-#SETUP_TARGET_FOR_COVERAGE_GCOVR_XML(${PROJECT_NAME}_coverage ${PROJECT_NAME}_test .)
 
 # install
 install(TARGETS ${PROJECT_NAME} DESTINATION lib)
