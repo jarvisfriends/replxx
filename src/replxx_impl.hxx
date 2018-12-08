@@ -113,6 +113,7 @@ public:
 	void set_beep_on_ambiguous_completion( bool val );
 	void set_no_color( bool val );
 	void set_max_history_size( int len );
+	void set_completion_count_cutoff( int len );
 	void clear_screen( void );
 	int install_window_change_handler( void );
 	completions_t call_completer( std::string const& input, int breakPos ) const;
@@ -134,7 +135,7 @@ private:
 	NEXT insert_character( PromptBase&, int );
 	void realloc_utf8_buffer( int );
 	void realloc( int );
-	void read_from_stdin( void );
+	char const* read_from_stdin( void );
 	void clearScreen(PromptBase& pi);
 	int incrementalHistorySearch(PromptBase& pi, int startChar);
 	void commonPrefixSearch(PromptBase& pi, int startChar);

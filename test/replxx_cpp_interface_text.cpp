@@ -164,7 +164,7 @@ namespace replxx {
     };
 
     // init the repl
-    std::unique_ptr<Replxx> p_replxx{new Replxx()};
+    auto p_replxx = std::make_unique<Replxx>();
     EXPECT_EQ(0, p_replxx->install_window_change_handler());
 
     // the path to the history file

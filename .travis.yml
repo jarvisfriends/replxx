@@ -1,5 +1,5 @@
 os: linux
-dist: trusty
+dist: xenial
 sudo: true
 git:
   submodules: true
@@ -13,6 +13,7 @@ addons:
       - ninja-build
       - g++-6
       - gcovr
+      - python3-pexpect
     sources:
       - ubuntu-toolchain-r-test
   sonarcloud:
@@ -26,7 +27,7 @@ script:
   - mkdir -p build && cd build
   - cmake -GNinja ..
   - ninja
-  - cd ..
+  - cd .. && env SKIP=8bit_encoding ./tests.py
   - mkdir -p build_sonar_scanner && cd build_sonar_scanner
   - cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
   - build-wrapper-linux-x86-64 --out-dir ../bw-output/ ninja

@@ -28,7 +28,7 @@
 #include "escape.hxx"
 #include "keycodes.hxx"
 
-#define _DEBUG_LINUX_KEYBOARD
+// #define __REPLXX_DEBUG__
 
 using namespace std;
 
@@ -264,8 +264,7 @@ char32_t readUnicodeCharacter() {
 				return unicodeChar[0];
 			}
 		} else {
-			utf8Count =
-					0;	// this shouldn't happen: got four bytes but no UTF-8 character
+			utf8Count = 0;	// this shouldn't happen: got four bytes but no UTF-8 character
 		}
 	}
 }
@@ -296,7 +295,7 @@ char32_t read_char() {
 	int highSurrogate( 0 );
 	while (true) {
 		ReadConsoleInputW(console_in, &rec, 1, &count);
-#if 0	// helper for debugging keystrokes, display info in the debug "Output"
+#if __REPLXX_DEBUG__	// helper for debugging keystrokes, display info in the debug "Output"
 			 // window in the debugger
 				{
 						if ( rec.EventType == KEY_EVENT ) {
@@ -416,7 +415,7 @@ char32_t read_char() {
 // program
 // gives us on different keystrokes.	Hit ctrl-C to exit this mode.
 //
-#if defined(_DEBUG_LINUX_KEYBOARD)
+#if defined(__REPLXX_DEBUG__)
 	if (c == ctrlChar('^')) {	// ctrl-^, special debug mode, prints all keys hit,
 														 // ctrl-C to get out
 		printf(
@@ -467,7 +466,7 @@ char32_t read_char() {
 			}
 		}
 	}
-#endif	// _DEBUG_LINUX_KEYBOARD
+#endif	// __REPLXX_DEBUG__
 
 	return EscapeSequenceProcessing::doDispatch(c);
 #endif	// #_WIN32
