@@ -229,9 +229,12 @@ void Replxx::ReplxxImpl::set_preload_buffer( std::string const& preloadText ) {
 	}
 }
 
-void Replxx::ReplxxImpl::read_from_stdin( void ) {
-	if (_preloadedBuffer.empty()) {
+char const* Replxx::ReplxxImpl::read_from_stdin( void ) {
+	if ( _preloadedBuffer.empty() ) {
 		getline( cin, _preloadedBuffer );
+		if ( ! cin.good() ) {
+			return nullptr;
+		}
 	}
 	while ( ! _preloadedBuffer.empty() && ( ( _preloadedBuffer.back() == '\r' ) || ( _preloadedBuffer.back() == '\n' ) ) ) {
 		_preloadedBuffer.pop_back();
@@ -239,7 +242,7 @@ void Replxx::ReplxxImpl::read_from_stdin( void ) {
 	realloc_utf8_buffer( _preloadedBuffer.length() );
 	strncpy( _utf8Buffer.get(), _preloadedBuffer.c_str(), _preloadedBuffer.length() );
 	_preloadedBuffer.clear();
-	return;
+	return _utf8Buffer.get();
 }
 
 char const* Replxx::ReplxxImpl::input( std::string const& prompt ) {
@@ -255,13 +258,14 @@ char const* Replxx::ReplxxImpl::input( std::string const& prompt ) {
 		}
 		PromptInfo pi(prompt, getScreenColumns());
 		if (isUnsupportedTerm()) {
-			if (!pi.write()) return 0;
+			if ( ! pi.write() ) {
+				return nullptr;
+			}
 			fflush(stdout);
-			read_from_stdin();
-			return ( _utf8Buffer.get() );
+			return ( read_from_stdin() );
 		} else {
 			if (enableRawMode() == -1) {
-				return NULL;
+				return nullptr;
 			}
 			clear();
 			if (!_preloadedBuffer.empty()) {
@@ -271,7 +275,7 @@ char const* Replxx::ReplxxImpl::input( std::string const& prompt ) {
 			int errCode = getInputLine(pi);
 			disableRawMode();
 			if (errCode == -1) {
-				return NULL;
+				return nullptr;
 			}
 			printf("\n");
 			size_t bufferSize( sizeof(char32_t) * length() + 1 );
@@ -280,8 +284,7 @@ char const* Replxx::ReplxxImpl::input( std::string const& prompt ) {
 			return ( _utf8Buffer.get() );
 		}
 	} else { // input not from a terminal, we should work with piped input, i.e. redirected stdin
-		read_from_stdin();
-		return ( _utf8Buffer.get() );
+		return ( read_from_stdin() );
 	}
 }
 
@@ -728,8 +731,7 @@ int Replxx::ReplxxImpl::completeLine(PromptBase& pi) {
 	bool showCompletions = true;
 	bool onNewLine = false;
 	if ( static_cast<int>( completions.size() ) > _completionCountCutoff ) {
-		int savePos =
-				_pos;	// move cursor to EOL to avoid overwriting the command line
+		int savePos = _pos; // move cursor to EOL to avoid overwriting the command line
 		_pos = _len;
 		refreshLine(pi);
 		_pos = savePos;
@@ -1798,6 +1800,10 @@ void Replxx::ReplxxImpl::set_hint_callback( Replxx::hint_callback_t const& fn, v
 
 void Replxx::ReplxxImpl::set_max_history_size( int len ) {
 	_history.set_max_size( len );
+}
+
+void Replxx::ReplxxImpl::set_completion_count_cutoff( int count ) {
+	_completionCountCutoff = count;
 }
 
 void Replxx::ReplxxImpl::set_max_hint_rows( int count ) {

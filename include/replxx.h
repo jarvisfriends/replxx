@@ -219,6 +219,10 @@ void replxx_set_word_break_characters( Replxx*, char const* wordBreakers );
  */
 void replxx_set_special_prefixes( Replxx*, char const* specialPrefixes );
 
+/*! \brief How many completions should trigger pagination.
+ */
+void replxx_set_completion_count_cutoff( Replxx*, int count );
+
 /*! \brief Set maximum number of displayed hint rows.
  */
 void replxx_set_max_hint_rows( Replxx*, int count );
@@ -254,7 +258,9 @@ char const* replxx_history_line( Replxx*, int index );
 int replxx_history_save( Replxx*, const char* filename );
 int replxx_history_load( Replxx*, const char* filename );
 void replxx_clear_screen( Replxx* );
+#ifdef __REPLXX_DEBUG__
 void replxx_debug_dump_print_codes(void);
+#endif
 /* the following is extension to the original linenoise API */
 int replxx_install_window_change_handler( Replxx* );
 
