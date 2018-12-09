@@ -16,6 +16,7 @@ addons:
       - python3-pexpect
     sources:
       - ubuntu-toolchain-r-test
+  codecov: true
   sonarcloud:
     organization: jarvisfriends
 env:
@@ -26,12 +27,12 @@ before_install:
 script:
   - mkdir -p build && cd build
   - cmake -GNinja ..
-  - ninja
+  - ninja replxx_coverage
   - cd .. && env SKIP=8bit_encoding ./tests.py
   - mkdir -p build_sonar_scanner && cd build_sonar_scanner
   - cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
-  - build-wrapper-linux-x86-64 --out-dir ../bw-output/ ninja
-  - ninja
+  - build-wrapper-linux-x86-64 --out-dir ../bw-output/ ninja replxx_coverage
+  - ninja replxx_coverage
   - cd ..
   - sonar-scanner
 language: cpp

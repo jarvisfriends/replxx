@@ -48,23 +48,22 @@ bool gotResize = false;
 
 namespace {
 
-static int const REPLXX_MAX_HINT_ROWS( 4 );
 char const defaultBreakChars[] = " =+-/\\*?\"'`&<>;|@{([])}";
 
 #ifndef _WIN32
 
-static void WindowSizeChanged(int) {
+void WindowSizeChanged(int) {
 	// do nothing here but setting this flag
 	gotResize = true;
 }
 
 #endif
 
-static const char* unsupported_term[] = {"dumb", "cons25", "emacs", NULL};
+const char* unsupported_term[] = {"dumb", "cons25", "emacs", nullptr};
 
-static bool isUnsupportedTerm(void) {
+bool isUnsupportedTerm() {
 	char* term = getenv("TERM");
-	if (term == NULL) {
+	if (term == nullptr) {
 		return false;
 	}
 	for (int j = 0; unsupported_term[j]; ++j) {
@@ -82,40 +81,13 @@ extern bool gotResize;
 #endif
 
 Replxx::ReplxxImpl::ReplxxImpl( FILE*, FILE*, FILE* )
-	: _maxCharacterCount( 0 )
-	, _buflen( 0 )
-	, _buf32( nullptr )
-	, _charWidths( nullptr )
-	, _display()
-	, _hint()
-	, _len( 0 )
-	, _pos( 0 )
-	, _prefix( 0 )
-	, _hintSelection( -1 )
-	, _history()
-	, _killRing()
-	, _maxHintRows( REPLXX_MAX_HINT_ROWS )
-	, _breakChars( defaultBreakChars )
-	, _specialPrefixes( "" )
-	, _completionCountCutoff( 100 )
-	, _doubleTabCompletion( false )
-	, _completeOnEmpty( true )
-	, _beepOnAmbiguousCompletion( false )
-	, _noColor( false )
-	, _completionCallback( nullptr )
-	, _highlighterCallback( nullptr )
-	, _hintCallback( nullptr )
-	, _completionUserdata( nullptr )
-	, _highlighterUserdata( nullptr )
-	, _hintUserdata( nullptr )
-	, _preloadedBuffer()
-	, _errorMessage() {
+	: _breakChars( defaultBreakChars ) {
 	realloc_utf8_buffer( REPLXX_MAX_LINE );
 	realloc( max( REPLXX_MAX_LINE - 1, _history.max_line_length() ) );
 	_buf32[0] = 0;
 }
 
-void Replxx::ReplxxImpl::clear( void ) {
+void Replxx::ReplxxImpl::clear() {
 	_len = 0;
 	_pos = 0;
 	_prefix = 0;
@@ -148,12 +120,11 @@ void Replxx::ReplxxImpl::realloc_utf8_buffer( int len ) {
 		while ( ( len + 1 ) > _maxCharacterCount ) {
 			_maxCharacterCount *= 2;
 		}
-		int bufferSize( _maxCharacterCount * sizeof ( char32_t ) );
-		_utf8Buffer.reset( new char[bufferSize] );
+		size_t bufferSize( _maxCharacterCount * sizeof ( char32_t ) );
+		_utf8Buffer = std::make_unique<char[]>(bufferSize);
 		memset( _utf8Buffer.get(), 0, bufferSize );
 	}
-	_utf8Buffer[len] = 0;
-	return;
+	_utf8Buffer[len - 1] = 0;
 }
 
 Replxx::ReplxxImpl::completions_t Replxx::ReplxxImpl::call_completer( std::string const& input, int breakPos ) const {
@@ -229,7 +200,7 @@ void Replxx::ReplxxImpl::set_preload_buffer( std::string const& preloadText ) {
 	}
 }
 
-char const* Replxx::ReplxxImpl::read_from_stdin( void ) {
+char const* Replxx::ReplxxImpl::read_from_stdin() {
 	if ( _preloadedBuffer.empty() ) {
 		getline( cin, _preloadedBuffer );
 		if ( ! cin.good() ) {
@@ -288,11 +259,11 @@ char const* Replxx::ReplxxImpl::input( std::string const& prompt ) {
 	}
 }
 
-void Replxx::ReplxxImpl::clear_screen( void ) {
+void Replxx::ReplxxImpl::clear_screen() {
 	replxx::clear_screen( CLEAR_SCREEN::WHOLE );
 }
 
-int Replxx::ReplxxImpl::install_window_change_handler( void ) {
+int Replxx::ReplxxImpl::install_window_change_handler() {
 #ifndef _WIN32
 	struct sigaction sa;
 	sigemptyset(&sa.sa_mask);
@@ -1775,7 +1746,7 @@ int Replxx::ReplxxImpl::history_load( std::string const& filename ) {
 	return ( _history.load( filename ) );
 }
 
-int Replxx::ReplxxImpl::history_size( void ) const {
+int Replxx::ReplxxImpl::history_size() const {
 	return ( _history.size() );
 }
 
