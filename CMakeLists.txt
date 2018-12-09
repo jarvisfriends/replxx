@@ -25,7 +25,6 @@ set(${PROJECT_NAME_UPPER}_FRIENDLY_STRING "replxx - Read Evaluate Print Loop lib
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
-include(cmake/CodeCoverage.cmake)
 # compiler options
 if(CMAKE_COMPILER_IS_GNUCXX)
   message(STATUS "Compiler type GNU: ${CMAKE_CXX_COMPILER}")
@@ -36,6 +35,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
   set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE} ${BASE_COMPILER_OPTIONS} -O3 -fomit-frame-pointer")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${BASE_COMPILER_OPTIONS} -O3 -g")
+  include(cmake/CodeCoverage.cmake)
   set(COVERAGE_LCOV_EXCLUDES 'test/*' 'examples/*')
   SETUP_TARGET_FOR_COVERAGE_LCOV(
     NAME ${PROJECT_NAME}_coverage
@@ -52,6 +52,7 @@ elseif(CMAKE_COMPILER_IS_CLANGCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
   set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE} ${BASE_COMPILER_OPTIONS} -O3 -fomit-frame-pointer")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${BASE_COMPILER_OPTIONS} -O3 -g")
+  include(cmake/CodeCoverage.cmake)
   set(COVERAGE_LCOV_EXCLUDES 'test/*' 'examples/*')
   SETUP_TARGET_FOR_COVERAGE_LCOV(
     NAME ${PROJECT_NAME}_coverage
@@ -65,7 +66,7 @@ elseif(MSVC)
 
   set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO /SUBSYSTEM:CONSOLE /LTCG /ignore:4099")
   set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /SUBSYSTEM:CONSOLE /ignore:4099")
-  set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SUBSYSTEM:CONSOLE /ignore:4099")
+  set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /NODEFAULTLIB:library /SUBSYSTEM:CONSOLE /ignore:4099")
   set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /SUBSYSTEM:CONSOLE /ignore:4099")
 else()
   # unknown compiler
@@ -108,40 +109,41 @@ add_library(Replxx::Replxx ALIAS ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME}
    PUBLIC ${PROJECT_SOURCE_DIR}/include
    PRIVATE ${PROJECT_SOURCE_DIR}/src)
+if (NOT MSVC)
+  # Download and unpack googletest at configure time
+  configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
+  execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+  if(result)
+    message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+  endif()
+  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+  if(result)
+    message(FATAL_ERROR "Build step for googletest failed: ${result}")
+  endif()
+  # Add googletest directly to our build. This defines
+  # the gtest and gtest_main targets.
+  add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+    ${CMAKE_BINARY_DIR}/googletest-build
+    EXCLUDE_FROM_ALL)
 
-# Download and unpack googletest at configure time
-configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-  RESULT_VARIABLE result
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-if(result)
-  message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+  # Unit Tests
+  enable_testing()
+  find_package (Threads)
+  add_executable(${PROJECT_NAME}_test
+    test/history_test.cpp
+    test/replxx_cpp_interface_text.cpp)
+  target_link_libraries(${PROJECT_NAME}_test
+    PRIVATE gtest_main
+    ${PROJECT_NAME})
+  target_include_directories(${PROJECT_NAME}_test
+    PRIVATE ${PROJECT_SOURCE_DIR}/include
+    PRIVATE ${PROJECT_SOURCE_DIR}/src)
+  add_test(AllTests_${PROJECT_NAME} ${PROJECT_NAME}_test)
 endif()
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-  RESULT_VARIABLE result
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-if(result)
-  message(FATAL_ERROR "Build step for googletest failed: ${result}")
-endif()
-# Add googletest directly to our build. This defines
-# the gtest and gtest_main targets.
-add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
-  ${CMAKE_BINARY_DIR}/googletest-build
-  EXCLUDE_FROM_ALL)
-
-# Unit Tests
-enable_testing()
-find_package (Threads)
-add_executable(${PROJECT_NAME}_test
-  test/history_test.cpp
-  test/replxx_cpp_interface_text.cpp)
-target_link_libraries(${PROJECT_NAME}_test
-  PRIVATE gtest_main
-  ${PROJECT_NAME})
-target_include_directories(${PROJECT_NAME}_test
-  PRIVATE ${PROJECT_SOURCE_DIR}/include
-  PRIVATE ${PROJECT_SOURCE_DIR}/src)
-add_test(AllTests_${PROJECT_NAME} ${PROJECT_NAME}_test)
 
 # install
 install(TARGETS ${PROJECT_NAME} DESTINATION lib)
