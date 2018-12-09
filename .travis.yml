@@ -13,10 +13,10 @@ addons:
       - ninja-build
       - g++-6
       - gcovr
+      - lcov
       - python3-pexpect
     sources:
       - ubuntu-toolchain-r-test
-  codecov: true
   sonarcloud:
     organization: jarvisfriends
 env:
@@ -26,7 +26,7 @@ before_install:
   - eval "${MATRIX_EVAL}"
 script:
   - mkdir -p build && cd build
-  - cmake -GNinja ..
+  - cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
   - ninja
   - cd .. && env SKIP=8bit_encoding ./tests.py
   - mkdir -p build_sonar_scanner && cd build_sonar_scanner
