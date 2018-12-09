@@ -23,28 +23,41 @@ set(${PROJECT_NAME_UPPER}CONTACT "amok@codestation.org")
 set(${PROJECT_NAME_UPPER}_FRIENDLY_STRING "replxx - Read Evaluate Print Loop library")
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
+include(cmake/CodeCoverage.cmake)
 # compiler options
 if(CMAKE_COMPILER_IS_GNUCXX)
   message(STATUS "Compiler type GNU: ${CMAKE_CXX_COMPILER}")
 	set(BASE_COMPILER_OPTIONS "-Wall -Wextra -Wpedantic -D_GNU_SOURCE")
   set(CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} ${BASE_COMPILER_OPTIONS}")
 	set(CMAKE_CXX_FLAGS_COVERAGE       "${CMAKE_CXX_FLAGS} ${BASE_COMPILER_OPTIONS} -O0 --coverage -fno-inline -fno-default-inline -fno-inline-small-functions")
-  set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG} ${BASE_COMPILER_OPTIONS} -O0 -g -ggdb -g3 -ggdb3")
+  set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG} ${BASE_COMPILER_OPTIONS} -O0 -g -ggdb -g3 -ggdb3 -fprofile-arcs -ftest-coverage")
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
   set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE} ${BASE_COMPILER_OPTIONS} -O3 -fomit-frame-pointer")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${BASE_COMPILER_OPTIONS} -O3 -g")
+  set(COVERAGE_LCOV_EXCLUDES 'test/*' 'examples/*')
+  SETUP_TARGET_FOR_COVERAGE_LCOV(
+    NAME ${PROJECT_NAME}_coverage
+    EXECUTABLE ${PROJECT_NAME}_test -j ${PROCESSOR_COUNT}
+    DEPENDENCIES ${PROJECT_NAME}
+  )
 
 elseif(CMAKE_COMPILER_IS_CLANGCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # using regular Clang or AppleClang
   message(STATUS "Compiler type CLANG: ${CMAKE_CXX_COMPILER}")
   set(BASE_COMPILER_OPTIONS "-Wall -Wextra -Wpedantic -D_GNU_SOURCE")
   set(CMAKE_CXX_FLAGS                "${CMAKE_CXX_FLAGS} ${BASE_COMPILER_OPTIONS}")
-  set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG} ${BASE_COMPILER_OPTIONS} -O0 -g")
+  set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG} ${BASE_COMPILER_OPTIONS} -O0 -g -fprofile-arcs -ftest-coverage")
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
   set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE} ${BASE_COMPILER_OPTIONS} -O3 -fomit-frame-pointer")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${BASE_COMPILER_OPTIONS} -O3 -g")
+  set(COVERAGE_LCOV_EXCLUDES 'test/*' 'examples/*')
+  SETUP_TARGET_FOR_COVERAGE_LCOV(
+    NAME ${PROJECT_NAME}_coverage
+    EXECUTABLE ${PROJECT_NAME}_test -j ${PROCESSOR_COUNT}
+    DEPENDENCIES ${PROJECT_NAME}
+  )
 
 elseif(MSVC)
   message(STATUS "Compiler type MSVC: ${CMAKE_CXX_COMPILER}")
@@ -112,8 +125,8 @@ if(result)
 endif()
 # Add googletest directly to our build. This defines
 # the gtest and gtest_main targets.
-add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-  ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+  ${CMAKE_BINARY_DIR}/googletest-build
   EXCLUDE_FROM_ALL)
 
 # Unit Tests

@@ -13,6 +13,7 @@ addons:
       - ninja-build
       - g++-6
       - gcovr
+      - lcov
       - python3-pexpect
     sources:
       - ubuntu-toolchain-r-test
@@ -25,13 +26,16 @@ before_install:
   - eval "${MATRIX_EVAL}"
 script:
   - mkdir -p build && cd build
-  - cmake -GNinja ..
+  - cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
   - ninja
   - cd .. && env SKIP=8bit_encoding ./tests.py
   - mkdir -p build_sonar_scanner && cd build_sonar_scanner
   - cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
-  - build-wrapper-linux-x86-64 --out-dir ../bw-output/ ninja
-  - ninja
+  - build-wrapper-linux-x86-64 --out-dir ../bw-output/ ninja replxx_coverage
+  - ninja replxx_coverage
   - cd ..
   - sonar-scanner
+after_success:
+  # Uploading report to CodeCov
+  - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
 language: cpp
