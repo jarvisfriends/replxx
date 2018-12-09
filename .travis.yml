@@ -27,7 +27,7 @@ before_install:
 script:
   - mkdir -p build && cd build
   - cmake -GNinja ..
-  - ninja replxx_coverage
+  - ninja
   - cd .. && env SKIP=8bit_encoding ./tests.py
   - mkdir -p build_sonar_scanner && cd build_sonar_scanner
   - cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
