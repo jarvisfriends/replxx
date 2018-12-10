@@ -24,6 +24,7 @@ env:
 
 before_install:
   - eval "${MATRIX_EVAL}"
+  - gem install coveralls-lcov
 script:
   - mkdir -p build && cd build
   - cmake -GNinja -DCMAKE_BUILD_TYPE=Debug ..
@@ -38,4 +39,5 @@ script:
 after_success:
   # Uploading report to CodeCov
   - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+  - coveralls-lcov build_sonar_scanner/replxx_coverage.info.cleaned
 language: cpp
