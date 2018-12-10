@@ -4,6 +4,7 @@
 
 [![Build Status](https://travis-ci.org/jarvisfriends/replxx.svg?branch=master)](https://travis-ci.org/jarvisfriends/replxx)
 [![codecov](https://codecov.io/gh/jarvisfriends/replxx/branch/master/graph/badge.svg)](https://codecov.io/gh/jarvisfriends/replxx)
+[![Windows Build Status](https://ci.appveyor.com/api/projects/status/lyc007ay208dpm2d/branch/master?svg=true)](https://ci.appveyor.com/project/amarcum/replxx/branch/master)
 
 A small, portable GNU readline replacement for Linux, Windows and
 MacOS which is capable of handling UTF-8 characters. Unlike GNU
