@@ -35,12 +35,10 @@ script:
   - build-wrapper-linux-x86-64 --out-dir ../bw-output/ ninja replxx_coverage
   - ninja replxx_coverage
   - cd ..
-  - ls -al *
-    # Uploading report to CodeCov
+    # Uploading report to CodeCov and generating .gcov files that sonarcloud needs
   - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
   - mkdir -p gcov_files && mv *.gcov gcov_files/.
   - sonar-scanner
-  - ls -al *
 after_success:
   - coveralls-lcov build_sonar_scanner/replxx_coverage.info.cleaned
 language: cpp
