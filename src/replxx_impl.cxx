@@ -1572,7 +1572,7 @@ int Replxx::ReplxxImpl::incrementalHistorySearch(PromptBase& pi, int startChar) 
 				copyString8to32(tempUnicode.get(), bufferSize, ucharCount, _history.current().c_str());
 				dynamicRefresh(dp, tempUnicode.get(), historyLineLength, historyLinePosition);
 				continue;
-			} break;
+			}
 #endif
 
 			// these characters update the search string, and hence the selected input
