@@ -196,12 +196,23 @@ namespace replxx {
     p_replxx->set_highlighter_callback(replxx_cpp_interface_test::hook_color, static_cast<void*>(&regex_color));
     p_replxx->set_hint_callback(replxx_cpp_interface_test::hook_hint, static_cast<void*>(&examples));
 
+    // other api calls
+    p_replxx->set_word_break_characters( " \t.,-%!;:=*~^'\"/?<>|[](){}" );
+    p_replxx->set_special_prefixes( "\\" );
+    p_replxx->set_completion_count_cutoff( 128 );
+    p_replxx->set_double_tab_completion( false );
+    p_replxx->set_complete_on_empty( true );
+    p_replxx->set_beep_on_ambiguous_completion( false );
+    p_replxx->set_no_color( false );
+
     std::string prompt {"\x1b[1;32mreplxx\x1b[0m> "};
 
     p_replxx->history_add("first history value");
     p_replxx->history_add("second \"history\" value");
     p_replxx->history_add("int 42");
     p_replxx->history_add("double 53.8");
+    std::string fake_user_result = "test output verified";
+    p_replxx->print("%s\n", fake_user_result.c_str());
 
     EXPECT_EQ(4, p_replxx->history_size());
     // History_line is 0 based
