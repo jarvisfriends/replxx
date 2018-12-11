@@ -3,7 +3,7 @@
 ![demo](https://drive.google.com/uc?export=download&id=0B53g2Y3z7rWNT2dCRGVVNldaRnc)
 
 [![Build Status](https://travis-ci.org/jarvisfriends/replxx.svg?branch=master)](https://travis-ci.org/jarvisfriends/replxx)
-[![Coverage Status](https://coveralls.io/repos/github/jarvisfriends/replxx/badge.svg?branch=try_coveralls)](https://coveralls.io/github/jarvisfriends/replxx?branch=try_coveralls)
+[![Coverage Status](https://coveralls.io/repos/github/jarvisfriends/replxx/badge.svg?branch=master)](https://coveralls.io/github/jarvisfriends/replxx?branch=try_master)
 [![codecov](https://codecov.io/gh/jarvisfriends/replxx/branch/master/graph/badge.svg)](https://codecov.io/gh/jarvisfriends/replxx)
 [![Windows Build Status](https://ci.appveyor.com/api/projects/status/lyc007ay208dpm2d/branch/master?svg=true)](https://ci.appveyor.com/project/amarcum/replxx/branch/master)
 
