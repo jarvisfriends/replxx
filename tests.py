@@ -4,6 +4,9 @@ import pexpect
 import unittest
 import re
 import os
+import subprocess
+import signal
+import time
 
 keytab = {
 	"<home>": "\033[1~",
@@ -49,6 +52,7 @@ keytab = {
 	"<c-v>": "",
 	"<c-w>": "",
 	"<c-y>": "",
+	"<c-z>": "",
 	"<m-b>": "\033b",
 	"<m-c>": "\033c",
 	"<m-d>": "\033d",
@@ -69,14 +73,23 @@ termseq = {
 	"\x1b[H": "<mvhm>",
 	"\x1b[2J": "<clr>",
 	"\x1b[J": "<ceos>",
-	"\x1b[0;1;30m": "<gray>",
+	"\x1b[0;22;30m": "<black>",
 	"\x1b[0;22;31m": "<red>",
 	"\x1b[0;22;32m": "<green>",
+	"\x1b[0;22;33m": "<brown>",
+	"\x1b[0;22;34m": "<blue>",
+	"\x1b[0;22;35m": "<magenta>",
+	"\x1b[0;22;36m": "<cyan>",
+	"\x1b[0;22;37m": "<lightgray>",
+	"\x1b[0;1;30m": "<gray>",
 	"\x1b[0;1;31m": "<brightred>",
-	"\x1b[1;32m": "<brightgreen>",
+	"\x1b[0;1;32m": "<brightgreen>",
+	"\x1b[0;1;33m": "<yellow>",
 	"\x1b[0;1;34m": "<brightblue>",
 	"\x1b[0;1;35m": "<brightmagenta>",
+	"\x1b[0;1;36m": "<brightcyan>",
 	"\x1b[0;1;37m": "<white>",
+	"\x1b[1;32m": "<brightgreen>",
 	"\x1b[101;1;33m": "<err>",
 	"\x07": "<bell>"
 }
@@ -118,6 +131,8 @@ _words_ = [
 def skip( test_ ):
 	return "SKIP" in os.environ and os.environ["SKIP"].find( test_ ) >= 0
 
+verbosity = None
+
 class ReplxxTests( unittest.TestCase ):
 	_prompt_ = "\033\\[1;32mreplxx\033\\[0m> "
 	_cxxSample_ = "./build/example-cxx-api"
@@ -138,12 +153,22 @@ class ReplxxTests( unittest.TestCase ):
 			f.close()
 		os.environ["TERM"] = term
 		command = command.replace( "\n", "~" )
+		if verbosity >= 2:
+			print( "\nTERM: {}, SIZE: {}, CMD: {}".format( term, dimensions, command ) )
 		prompt = prompt.replace( "\n", "\r\n" ).replace( "\r\r", "\r" )
 		end = end.replace( "\n", "\r\n" ).replace( "\r\r", "\r" )
 		self_._replxx = pexpect.spawn( command, maxread = 1, encoding = encoding, dimensions = dimensions )
 		self_._replxx.expect( prompt )
 		self_.maxDiff = None
-		self_._replxx.send( sym_to_raw( seq_ ) )
+		seqs = seq_.split( "<c-z>" )
+		for seq in seqs:
+			last = seq is seqs[-1]
+			if not last:
+				seq += "<c-z>"
+			self_._replxx.send( sym_to_raw( seq ) )
+			if not last:
+				time.sleep( 0.25 )
+				self_._replxx.kill( signal.SIGCONT )
 		self_._replxx.expect( end )
 		self_.assertSequenceEqual( seq_to_sym( self_._replxx.before ), expected_ )
 	def test_unicode( self_ ):
@@ -194,6 +219,22 @@ class ReplxxTests( unittest.TestCase ):
 			"abc<c-c><c-d>",
 			"<c9><ceos>a<rst><gray><rst><c10><c9><ceos>ab<rst><gray><rst><c11><c9><ceos>abc<rst><gray><rst><c12><c9><ceos>abc<rst><c12>^C\r"
 			"\r\n"
+		)
+	def test_ctrl_z( self_ ):
+		self_.check_scenario(
+			"<up><c-z><cr><c-d>",
+			"<c9><ceos>three<rst><gray><rst><c14><brightgreen>replxx<rst>> "
+			"<c9><ceos>three<rst><gray><rst><c14><c9><ceos>three<rst><c14>\r\n"
+			"three\r\n"
+		)
+		self_.check_scenario(
+			"<c-r>w<c-z><cr><c-d>",
+			"<c9><ceos><rst><gray><rst><c9><c1><ceos>(reverse-i-search)`': "
+			"<c23><c1><ceos>(reverse-i-search)`w': "
+			"two<c25><c1><ceos>(reverse-i-search)`w': "
+			"two<c25><c1><ceos><brightgreen>replxx<rst>> "
+			"two<c10><c9><ceos>two<rst><c12>\r\n"
+			"two\r\n"
 		)
 	def test_ctrl_l( self_ ):
 		self_.check_scenario(
@@ -396,6 +437,25 @@ class ReplxxTests( unittest.TestCase ):
 			"<gray>color_brightblue<rst><u3><c21><c9><ceos>color_brightb<rst><green>lue<rst><c22><c9><ceos><brightblue>color_brightblue<rst><green><rst><c25><c9><ceos><brightblue>color_brightblue<rst><c25>\r\n"
 			"color_brightblue\r\n"
 		)
+		self_.check_scenario(
+			"<tab><tab>n<cr><c-d>",
+			"<bell><bell><c9><ceos>n<rst><gray><rst><c10><c9><ceos>n<rst><c10>\r\nn\r\n",
+			dimensions = ( 4, 32 ),
+			command = ReplxxTests._cSample_ + " q1 e0"
+		)
+		self_.check_scenario(
+			"<tab><tab>n<cr><c-d>",
+			"<c9><ceos><rst><c9>\r\n"
+			"<brightmagenta><rst>db\r\n"
+			"<brightmagenta><rst>hello\r\n"
+			"<brightmagenta><rst>hallo\r\n"
+			"--More--<bell>\r"
+			"\t\t\t\t\r"
+			"<brightgreen>replxx<rst>> "
+			"<c9><ceos><rst><gray><rst><c9><c9><ceos><rst><c9>\r\n",
+			dimensions = ( 4, 24 ),
+			command = ReplxxTests._cSample_ + " q1 e1"
+		)
 	def test_completion_pager( self_ ):
 		cmd = ReplxxTests._cSample_ + " q1 x" + ",".join( _words_ )
 		self_.check_scenario(
@@ -418,6 +478,65 @@ class ReplxxTests( unittest.TestCase ):
 			"<brightgreen>replxx<rst>> "
 			"<c9><ceos><rst><gray><rst><c9><c9><ceos><rst><c9>\r\n",
 			dimensions = ( 10, 40 ),
+			command = cmd
+		)
+		self_.check_scenario(
+			"<tab><cr><cr><cr><cr><c-d>",
+			"<c9><ceos><rst><c9>\r\n"
+			"<brightmagenta><rst>ada         <brightmagenta><rst>groovy      <brightmagenta><rst>perl\r\n"
+			"<brightmagenta><rst>algolbash   <brightmagenta><rst>haskell     <brightmagenta><rst>php\r\n"
+			"<brightmagenta><rst>basic       <brightmagenta><rst>huginn      <brightmagenta><rst>prolog\r\n"
+			"<brightmagenta><rst>clojure     <brightmagenta><rst>java        <brightmagenta><rst>python\r\n"
+			"<brightmagenta><rst>cobol       <brightmagenta><rst>javascript  <brightmagenta><rst>rebol\r\n"
+			"<brightmagenta><rst>csharp      <brightmagenta><rst>julia       <brightmagenta><rst>ruby\r\n"
+			"<brightmagenta><rst>eiffel      <brightmagenta><rst>kotlin      <brightmagenta><rst>rust\r\n"
+			"<brightmagenta><rst>erlang      <brightmagenta><rst>lisp        <brightmagenta><rst>scala\r\n"
+			"<brightmagenta><rst>forth       <brightmagenta><rst>lua         <brightmagenta><rst>scheme\r\n"
+			"--More--\r"
+			"\t\t\t\t\r"
+			"<brightmagenta><rst>fortran     <brightmagenta><rst>modula      <brightmagenta><rst>sql\r\n"
+			"--More--\r"
+			"\t\t\t\t\r"
+			"<brightmagenta><rst>fsharp      <brightmagenta><rst>nemerle     <brightmagenta><rst>swift\r\n"
+			"--More--\r"
+			"\t\t\t\t\r"
+			"<brightmagenta><rst>go          <brightmagenta><rst>ocaml       <brightmagenta><rst>typescript\r\n"
+			"<brightgreen>replxx<rst>> "
+			"<c9><ceos><rst><gray><rst><c9><c9><ceos><rst><c9>\r\n",
+			dimensions = ( 10, 40 ),
+			command = cmd
+		)
+		self_.check_scenario(
+			"<tab><c-c><cr><c-d>",
+			"<c9><ceos><rst><c9>\r\n"
+			"<brightmagenta><rst>ada         <brightmagenta><rst>kotlin\r\n"
+			"<brightmagenta><rst>algolbash   <brightmagenta><rst>lisp\r\n"
+			"<brightmagenta><rst>basic       <brightmagenta><rst>lua\r\n"
+			"<brightmagenta><rst>clojure     <brightmagenta><rst>modula\r\n"
+			"<brightmagenta><rst>cobol       <brightmagenta><rst>nemerle\r\n"
+			"<brightmagenta><rst>csharp      <brightmagenta><rst>ocaml\r\n"
+			"<brightmagenta><rst>eiffel      <brightmagenta><rst>perl\r\n"
+			"--More--^C\r\n"
+			"<brightgreen>replxx<rst>> "
+			"<c9><ceos><rst><gray><rst><c9><c9><ceos><rst><c9>\r\n",
+			dimensions = ( 8, 32 ),
+			command = cmd
+		)
+		self_.check_scenario(
+			"<tab>q<cr><c-d>",
+			"<c9><ceos><rst><c9>\r\n"
+			"<brightmagenta><rst>ada         <brightmagenta><rst>kotlin\r\n"
+			"<brightmagenta><rst>algolbash   <brightmagenta><rst>lisp\r\n"
+			"<brightmagenta><rst>basic       <brightmagenta><rst>lua\r\n"
+			"<brightmagenta><rst>clojure     <brightmagenta><rst>modula\r\n"
+			"<brightmagenta><rst>cobol       <brightmagenta><rst>nemerle\r\n"
+			"<brightmagenta><rst>csharp      <brightmagenta><rst>ocaml\r\n"
+			"<brightmagenta><rst>eiffel      <brightmagenta><rst>perl\r\n"
+			"--More--\r"
+			"\t\t\t\t\r"
+			"<brightgreen>replxx<rst>> "
+			"<c9><ceos><rst><gray><rst><c9><c9><ceos><rst><c9>\r\n",
+			dimensions = ( 8, 32 ),
 			command = cmd
 		)
 	def test_double_tab_completion( self_ ):
@@ -471,6 +590,31 @@ class ReplxxTests( unittest.TestCase ):
 			"misc input\n"
 			"echo repl golf\n"
 			"final thoughts\n"
+		)
+		self_.check_scenario(
+			"<c-r>for<backspace><backspace>s<cr><c-d>",
+			"<c9><ceos><rst><gray><rst><c9><c1><ceos>(reverse-i-search)`': "
+			"<c23><c1><ceos>(reverse-i-search)`f': "
+			"swift<c27><c1><ceos>(reverse-i-search)`fo': "
+			"fortran<c25><c1><ceos>(reverse-i-search)`for': "
+			"fortran<c26><c1><ceos>(reverse-i-search)`fo': "
+			"fortran<c25><c1><ceos>(reverse-i-search)`f': "
+			"swift<c27><c1><ceos>(reverse-i-search)`fs': "
+			"fsharp<c25><c1><ceos><brightgreen>replxx<rst>> "
+			"fsharp<c9><c9><ceos>fsharp<rst><c15>\r\n"
+			"fsharp\r\n",
+			"\n".join( _words_ ) + "\n"
+		)
+		self_.check_scenario(
+			"<c-r>mod<c-l><cr><c-d>",
+			"<c9><ceos><rst><gray><rst><c9><c1><ceos>(reverse-i-search)`': "
+			"<c23><c1><ceos>(reverse-i-search)`m': "
+			"scheme<c28><c1><ceos>(reverse-i-search)`mo': "
+			"modula<c25><c1><ceos>(reverse-i-search)`mod': "
+			"modula<c26><c1><ceos><brightgreen>replxx<rst>> "
+			"<c9><RIS><mvhm><clr><rst><brightgreen>replxx<rst>> "
+			"<c9><ceos><rst><gray><rst><c9><c9><ceos><rst><c9>\r\n",
+			"\n".join( _words_ ) + "\n"
 		)
 	def test_history_prefix_search_backward( self_ ):
 		self_.check_scenario(
@@ -774,6 +918,22 @@ class ReplxxTests( unittest.TestCase ):
 			"<c9><ceos><rst><gray><rst><c9><c9><ceos><rst><c9>\r\n",
 			command = ReplxxTests._cSample_ + " q1 c3"
 		)
+		self_.check_scenario(
+			"<tab>n<cr><c-d>",
+			"<c9><ceos><rst><gray><rst><c9>\r\n"
+			"Display all 9 possibilities? (y or n)\r\n"
+			"<brightgreen>replxx<rst>> "
+			"<c9><ceos><rst><gray><rst><c9><c9><ceos><rst><c9>\r\n",
+			command = ReplxxTests._cSample_ + " q1 c3"
+		)
+		self_.check_scenario(
+			"<tab><c-c><cr><c-d>",
+			"<c9><ceos><rst><gray><rst><c9>\r\n"
+			"Display all 9 possibilities? (y or n)^C\r\n"
+			"<brightgreen>replxx<rst>> "
+			"<c9><ceos><rst><gray><rst><c9><c9><ceos><rst><c9>\r\n",
+			command = ReplxxTests._cSample_ + " q1 c3"
+		)
 	def test_preload( self_ ):
 		self_.check_scenario(
 			"<cr><c-d>",
@@ -868,7 +1028,114 @@ class ReplxxTests( unittest.TestCase ):
 			" ".join( _words_[::3] ) + "\n",
 			dimensions = ( 10, 40 )
 		)
+	def test_colors( self_ ):
+		self_.check_scenario(
+			"<up><cr><c-d>",
+			"<c9><ceos><black>color_black<rst> <red>color_red<rst> "
+			"<green>color_green<rst> <brown>color_brown<rst> <blue>color_blue<rst> "
+			"<magenta>color_magenta<rst> <cyan>color_cyan<rst> "
+			"<lightgray>color_lightgray<rst> <gray>color_gray<rst> "
+			"<brightred>color_brightred<rst> <brightgreen>color_brightgreen<rst> "
+			"<yellow>color_yellow<rst> <brightblue>color_brightblue<rst> "
+			"<brightmagenta>color_brightmagenta<rst> <brightcyan>color_brightcyan<rst> "
+			"<white>color_white<rst><green><rst><c70><u2><c9><ceos><black>color_black<rst> "
+			"<red>color_red<rst> <green>color_green<rst> <brown>color_brown<rst> "
+			"<blue>color_blue<rst> <magenta>color_magenta<rst> <cyan>color_cyan<rst> "
+			"<lightgray>color_lightgray<rst> <gray>color_gray<rst> "
+			"<brightred>color_brightred<rst> <brightgreen>color_brightgreen<rst> "
+			"<yellow>color_yellow<rst> <brightblue>color_brightblue<rst> "
+			"<brightmagenta>color_brightmagenta<rst> <brightcyan>color_brightcyan<rst> "
+			"<white>color_white<rst><c70>\r\n"
+			"color_black color_red color_green color_brown color_blue color_magenta "
+			"color_cyan color_lightgray color_gray color_brightred color_brightgreen "
+			"color_yellow color_brightblue color_brightmagenta color_brightcyan "
+			"color_white\r\n",
+			"color_black color_red color_green color_brown color_blue color_magenta color_cyan color_lightgray"
+			" color_gray color_brightred color_brightgreen color_yellow color_brightblue color_brightmagenta color_brightcyan color_white\n"
+		)
+	def test_word_break_characters( self_ ):
+		self_.check_scenario(
+			"<up><c-left>x<c-left><c-left>x<c-left><c-left>x<c-left><c-left>x<c-left><c-left>x<c-left><c-left>x<cr><c-d>",
+			"<c9><ceos>one_two three-four five_six "
+			"seven-eight<rst><gray><rst><c48><c9><ceos>one_two three-four five_six "
+			"seven-eight<rst><c43><c9><ceos>one_two three-four five_six "
+			"seven-xeight<rst><c44><c9><ceos>one_two three-four five_six "
+			"seven-xeight<rst><c43><c9><ceos>one_two three-four five_six "
+			"seven-xeight<rst><c37><c9><ceos>one_two three-four five_six "
+			"xseven-xeight<rst><c38><c9><ceos>one_two three-four five_six "
+			"xseven-xeight<rst><c37><c9><ceos>one_two three-four five_six "
+			"xseven-xeight<rst><c28><c9><ceos>one_two three-four xfive_six "
+			"xseven-xeight<rst><c29><c9><ceos>one_two three-four xfive_six "
+			"xseven-xeight<rst><c28><c9><ceos>one_two three-four xfive_six "
+			"xseven-xeight<rst><c23><c9><ceos>one_two three-xfour xfive_six "
+			"xseven-xeight<rst><c24><c9><ceos>one_two three-xfour xfive_six "
+			"xseven-xeight<rst><c23><c9><ceos>one_two three-xfour xfive_six "
+			"xseven-xeight<rst><c17><c9><ceos>one_two xthree-xfour xfive_six "
+			"xseven-xeight<rst><c18><c9><ceos>one_two xthree-xfour xfive_six "
+			"xseven-xeight<rst><c17><c9><ceos>one_two xthree-xfour xfive_six "
+			"xseven-xeight<rst><c9><c9><ceos>xone_two xthree-xfour xfive_six "
+			"xseven-xeight<rst><c10><c9><ceos>xone_two xthree-xfour xfive_six "
+			"xseven-xeight<rst><c54>\r\n"
+			"xone_two xthree-xfour xfive_six xseven-xeight\r\n",
+			"one_two three-four five_six seven-eight\n",
+			command = ReplxxTests._cSample_ + " q1 'w \t-'"
+		)
+		self_.check_scenario(
+			"<up><c-left>x<c-left><c-left>x<c-left><c-left>x<c-left><c-left>x<c-left><c-left>x<c-left><c-left>x<cr><c-d>",
+			"<c9><ceos>one_two three-four five_six "
+			"seven-eight<rst><gray><rst><c48><c9><ceos>one_two three-four five_six "
+			"seven-eight<rst><c37><c9><ceos>one_two three-four five_six "
+			"xseven-eight<rst><c38><c9><ceos>one_two three-four five_six "
+			"xseven-eight<rst><c37><c9><ceos>one_two three-four five_six "
+			"xseven-eight<rst><c33><c9><ceos>one_two three-four five_xsix "
+			"xseven-eight<rst><c34><c9><ceos>one_two three-four five_xsix "
+			"xseven-eight<rst><c33><c9><ceos>one_two three-four five_xsix "
+			"xseven-eight<rst><c28><c9><ceos>one_two three-four xfive_xsix "
+			"xseven-eight<rst><c29><c9><ceos>one_two three-four xfive_xsix "
+			"xseven-eight<rst><c28><c9><ceos>one_two three-four xfive_xsix "
+			"xseven-eight<rst><c17><c9><ceos>one_two xthree-four xfive_xsix "
+			"xseven-eight<rst><c18><c9><ceos>one_two xthree-four xfive_xsix "
+			"xseven-eight<rst><c17><c9><ceos>one_two xthree-four xfive_xsix "
+			"xseven-eight<rst><c13><c9><ceos>one_xtwo xthree-four xfive_xsix "
+			"xseven-eight<rst><c14><c9><ceos>one_xtwo xthree-four xfive_xsix "
+			"xseven-eight<rst><c13><c9><ceos>one_xtwo xthree-four xfive_xsix "
+			"xseven-eight<rst><c9><c9><ceos>xone_xtwo xthree-four xfive_xsix "
+			"xseven-eight<rst><c10><c9><ceos>xone_xtwo xthree-four xfive_xsix "
+			"xseven-eight<rst><c54>\r\n"
+			"xone_xtwo xthree-four xfive_xsix xseven-eight\r\n",
+			"one_two three-four five_six seven-eight\n",
+			command = ReplxxTests._cSample_ + " q1 'w \t_'"
+		)
+	def test_no_color( self_ ):
+		self_.check_scenario(
+			"<up> X<cr><c-d>",
+			"<c9><ceos>color_black color_red color_green color_brown color_blue "
+			"color_magenta color_cyan color_lightgray color_gray color_brightred "
+			"color_brightgreen color_yellow color_brightblue color_brightmagenta "
+			"color_brightcyan color_white<c70> X<u2><c9><ceos>color_black color_red "
+			"color_green color_brown color_blue color_magenta color_cyan color_lightgray "
+			"color_gray color_brightred color_brightgreen color_yellow color_brightblue "
+			"color_brightmagenta color_brightcyan color_white X<c72>\r\n"
+			"color_black color_red color_green color_brown color_blue color_magenta "
+			"color_cyan color_lightgray color_gray color_brightred color_brightgreen "
+			"color_yellow color_brightblue color_brightmagenta color_brightcyan "
+			"color_white X\r\n",
+			"color_black color_red color_green color_brown color_blue color_magenta color_cyan color_lightgray"
+			" color_gray color_brightred color_brightgreen color_yellow color_brightblue color_brightmagenta color_brightcyan color_white\n",
+			command = ReplxxTests._cSample_ + " q1 m1"
+		)
+	def test_no_terminal( self_ ):
+		res = subprocess.run( [ ReplxxTests._cSample_, "q1" ], input = b"replxx FTW!\n", stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+		self_.assertSequenceEqual( res.stdout, b"starting...\nreplxx FTW!\n\nExiting Replxx\n" )
+
+def parseArgs( self, func, argv ):
+	global verbosity
+	res = func( self, argv )
+	verbosity = self.verbosity
+	return res
 
 if __name__ == "__main__":
+	pa = unittest.TestProgram.parseArgs
+	unittest.TestProgram.parseArgs = lambda self, argv: parseArgs( self, pa, argv )
 	unittest.main()
 

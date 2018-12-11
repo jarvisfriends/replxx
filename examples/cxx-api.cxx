@@ -176,7 +176,7 @@ int main() {
 	rx.history_load(history_file);
 
 	// set the max history size
-	rx.set_max_history_size(12);
+	rx.set_max_history_size(128);
 
 	// set the max number of hint rows to show
 	rx.set_max_hint_rows(3);
@@ -185,6 +185,15 @@ int main() {
 	rx.set_completion_callback(hook_completion, static_cast<void*>(&examples));
 	rx.set_highlighter_callback(hook_color, static_cast<void*>(&regex_color));
 	rx.set_hint_callback(hook_hint, static_cast<void*>(&examples));
+
+	// other api calls
+	rx.set_word_break_characters( " \t.,-%!;:=*~^'\"/?<>|[](){}" );
+	rx.set_special_prefixes( "\\" );
+	rx.set_completion_count_cutoff( 128 );
+	rx.set_double_tab_completion( false );
+	rx.set_complete_on_empty( true );
+	rx.set_beep_on_ambiguous_completion( false );
+	rx.set_no_color( false );
 
 	// display initial welcome message
 	std::cout
@@ -256,7 +265,8 @@ int main() {
 		} else {
 			// default action
 			// echo the input
-			std::cout << input << "\n";
+
+			rx.print( "%s\n", input.c_str() );
 
 			rx.history_add(input);
 		}
