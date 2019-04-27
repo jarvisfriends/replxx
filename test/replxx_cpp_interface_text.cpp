@@ -10,6 +10,38 @@
 
 namespace replxx {
 
+
+int context_len( char const* prefix ) {
+  char const wb[] = " \t\n\r\v\f-=+*&^%$#@!,./?<>;:`~'\"[]{}()\\|";
+  int i = strlen( prefix ) - 1;
+  int cl = 0;
+  while ( i >= 0 ) {
+    if ( strchr( wb, prefix[i] ) != nullptr ) {
+      break;
+    }
+    ++ cl;
+    -- i;
+  }
+  return ( cl );
+}
+int utf8str_codepoint_len( char const* s, int utf8len ) {
+  int codepointLen = 0;
+  unsigned char m4 = 128 + 64 + 32 + 16;
+  unsigned char m3 = 128 + 64 + 32;
+  unsigned char m2 = 128 + 64;
+  for ( int i = 0; i < utf8len; ++ i, ++ codepointLen ) {
+    char c = s[i];
+    if ( ( c & m4 ) == m4 ) {
+      i += 3;
+    } else if ( ( c & m3 ) == m3 ) {
+      i += 2;
+    } else if ( ( c & m2 ) == m2 ) {
+      i += 1;
+    }
+  }
+  return ( codepointLen );
+}
+
   class replxx_cpp_interface_test : public ::testing::Test {
 
   public:
@@ -18,9 +50,9 @@ namespace replxx {
     ~replxx_cpp_interface_test() override = default;
 
 // prototypes
-    static Replxx::completions_t hook_completion(std::string const& context, int index, void* user_data);
-    static Replxx::hints_t hook_hint(std::string const& context, int index, Replxx::Color& color, void* user_data);
-    static void hook_color(std::string const& context, Replxx::colors_t& colors, void* user_data);
+    static Replxx::completions_t hook_completion(std::string const& context, int index, const std::vector<std::string>& examples);
+    static Replxx::hints_t hook_hint(std::string const& input, int& contextLen, Replxx::Color& color, const std::vector<std::string>& examples);
+    static void hook_color(std::string const& input, Replxx::colors_t& colors, const std::vector<std::pair<std::string, Replxx::Color>>& regex_color);
 
   protected:
     void TearDown() override {
@@ -31,12 +63,11 @@ namespace replxx {
 
   };
 
-  Replxx::completions_t replxx_cpp_interface_test::hook_completion(std::string const& context, int index, void* user_data) {
-    auto* examples = static_cast<std::vector<std::string>*>(user_data);
+  Replxx::completions_t replxx_cpp_interface_test::hook_completion(std::string const& context, int index, const std::vector<std::string>& examples) {
     Replxx::completions_t completions;
 
     std::string prefix {context.substr(index)};
-    for (auto const& e : *examples) {
+    for (auto const& e : examples) {
       if (e.compare(0, prefix.size(), prefix) == 0) {
         completions.emplace_back(e.c_str());
       }
@@ -45,15 +76,17 @@ namespace replxx {
     return completions;
   }
 
-  Replxx::hints_t replxx_cpp_interface_test::hook_hint(std::string const& context, int index, Replxx::Color& color, void* user_data) {
-    auto* examples = static_cast<std::vector<std::string>*>(user_data);
+  Replxx::hints_t replxx_cpp_interface_test::hook_hint(std::string const& input, int& contextLen, Replxx::Color& color, const std::vector<std::string>& examples) {
     Replxx::hints_t hints;
 
     // only show hint if prefix is at least 'n' chars long
     // or if prefix begins with a specific character
-    std::string prefix {context.substr(index)};
+    int utf8ContextLen( context_len( input.c_str() ) );
+    int prefixLen( input.length() - utf8ContextLen );
+    contextLen = utf8str_codepoint_len( input.c_str() + prefixLen, utf8ContextLen );
+    std::string prefix {input.substr(prefixLen)};
     if (prefix.size() >= 2 || (! prefix.empty() && prefix.at(0) == '.')) {
-      for (auto const& e : *examples) {
+      for (auto const& e : examples) {
         if (e.compare(0, prefix.size(), prefix) == 0) {
           hints.emplace_back(e.substr(prefix.size()).c_str());
         }
@@ -68,13 +101,11 @@ namespace replxx {
     return hints;
   }
 
-  void replxx_cpp_interface_test::hook_color(std::string const& context, Replxx::colors_t& colors, void* user_data) {
-    auto* regex_color = static_cast<std::vector<std::pair<std::string, Replxx::Color>>*>(user_data);
-
+  void replxx_cpp_interface_test::hook_color(std::string const& input, Replxx::colors_t& colors, const std::vector<std::pair<std::string, Replxx::Color>>& regex_color) {
     // highlight matching regex sequences
-    for (auto const& e : *regex_color) {
+    for (auto const& e : regex_color) {
       size_t pos {0};
-      std::string str = context;
+      std::string str = input;
       std::smatch match;
 
       while(std::regex_search(str, match, std::regex(e.first))) {
@@ -192,13 +223,19 @@ namespace replxx {
     p_replxx->set_max_hint_rows(8);
 
     // set the callbacks
-    p_replxx->set_completion_callback(replxx_cpp_interface_test::hook_completion, static_cast<void*>(&examples));
-    p_replxx->set_highlighter_callback(replxx_cpp_interface_test::hook_color, static_cast<void*>(&regex_color));
-    p_replxx->set_hint_callback(replxx_cpp_interface_test::hook_hint, static_cast<void*>(&examples));
+    p_replxx->set_completion_callback([examples](std::string const& input, int& contextLen) {
+      return replxx_cpp_interface_test::hook_completion(input, contextLen, examples);
+    } );
+    p_replxx->set_highlighter_callback([regex_color](std::string const& input, Replxx::colors_t& colors) {
+      replxx_cpp_interface_test::hook_color(input, colors, regex_color);
+    } );
+    p_replxx->set_hint_callback([examples](std::string const& input, int& contextLen, Replxx::Color& color) {
+      return replxx_cpp_interface_test::hook_hint(input, contextLen, color, examples);
+    } );
 
     // other api calls
     p_replxx->set_word_break_characters( " \t.,-%!;:=*~^'\"/?<>|[](){}" );
-    p_replxx->set_special_prefixes( "\\" );
+    //p_replxx->set_special_prefixes( "\\" );
     p_replxx->set_completion_count_cutoff( 128 );
     p_replxx->set_double_tab_completion( false );
     p_replxx->set_complete_on_empty( true );

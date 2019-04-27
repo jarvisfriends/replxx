@@ -123,16 +123,16 @@ Replxx::Replxx( void )
 	: _impl( new Replxx::ReplxxImpl( nullptr, nullptr, nullptr ), delete_ReplxxImpl ) {
 }
 
-void Replxx::set_completion_callback( completion_callback_t const& fn, void* userData ) {
-	_impl->set_completion_callback( fn, userData );
+void Replxx::set_completion_callback( completion_callback_t const& fn ) {
+	_impl->set_completion_callback( fn );
 }
 
-void Replxx::set_highlighter_callback( highlighter_callback_t const& fn, void* userData ) {
-	_impl->set_highlighter_callback( fn, userData );
+void Replxx::set_highlighter_callback( highlighter_callback_t const& fn ) {
+	_impl->set_highlighter_callback( fn );
 }
 
-void Replxx::set_hint_callback( hint_callback_t const& fn, void* userData ) {
-	_impl->set_hint_callback( fn, userData );
+void Replxx::set_hint_callback( hint_callback_t const& fn ) {
+	_impl->set_hint_callback( fn );
 }
 
 char const* Replxx::input( std::string const& prompt ) {
@@ -167,10 +167,6 @@ void Replxx::set_word_break_characters( char const* wordBreakers ) {
 	_impl->set_word_break_characters( wordBreakers );
 }
 
-void Replxx::set_special_prefixes( char const* specialPrefixes ) {
-	_impl->set_special_prefixes( specialPrefixes );
-}
-
 void Replxx::set_max_hint_rows( int count ) {
 	_impl->set_max_hint_rows( count );
 }
@@ -200,7 +196,11 @@ void Replxx::set_max_history_size( int len ) {
 }
 
 void Replxx::clear_screen( void ) {
-	_impl->clear_screen();
+	_impl->clear_screen( 0 );
+}
+
+void Replxx::emulate_key_press( char32_t keyPress_ ) {
+	_impl->emulate_key_press( keyPress_ );
 }
 
 int Replxx::install_window_change_handler( void ) {
@@ -222,7 +222,8 @@ int Replxx::print( char const* format_, ... ) {
 }
 
 ::Replxx* replxx_init() {
-	return ( reinterpret_cast< ::Replxx*>( new replxx::Replxx::ReplxxImpl( nullptr, nullptr, nullptr ) ) );
+	typedef ::Replxx* replxx_data_t;
+	return ( reinterpret_cast<replxx_data_t>( new replxx::Replxx::ReplxxImpl( nullptr, nullptr, nullptr ) ) );
 }
 
 void replxx_end( ::Replxx* replxx_ ) {
@@ -231,7 +232,12 @@ void replxx_end( ::Replxx* replxx_ ) {
 
 void replxx_clear_screen( ::Replxx* replxx_ ) {
 	replxx::Replxx::ReplxxImpl* replxx( reinterpret_cast<replxx::Replxx::ReplxxImpl*>( replxx_ ) );
-	return ( replxx->clear_screen() );
+	replxx->clear_screen( 0 );
+}
+
+void replxx_emulate_key_press( ::Replxx* replxx_, int unsigned keyPress_ ) {
+	replxx::Replxx::ReplxxImpl* replxx( reinterpret_cast<replxx::Replxx::ReplxxImpl*>( replxx_ ) );
+	replxx->emulate_key_press( keyPress_ );
 }
 
 /**
@@ -283,16 +289,16 @@ struct replxx_hints {
 	replxx::Replxx::hints_t data;
 };
 
-replxx::Replxx::completions_t completions_fwd( replxx_completion_callback_t fn, std::string const& input_, int breakPos_, void* userData ) {
+replxx::Replxx::completions_t completions_fwd( replxx_completion_callback_t fn, std::string const& input_, int& contextLen_, void* userData ) {
 	replxx_completions completions;
-	fn( input_.c_str(), breakPos_, &completions, userData );
+	fn( input_.c_str(), &completions, &contextLen_, userData );
 	return ( completions.data );
 }
 
 /* Register a callback function to be called for tab-completion. */
 void replxx_set_completion_callback(::Replxx* replxx_, replxx_completion_callback_t* fn, void* userData) {
 	replxx::Replxx::ReplxxImpl* replxx( reinterpret_cast<replxx::Replxx::ReplxxImpl*>( replxx_ ) );
-	replxx->set_completion_callback( std::bind( &completions_fwd, fn, _1, _2, _3 ), userData );
+	replxx->set_completion_callback( std::bind( &completions_fwd, fn, _1, _2, userData ) );
 }
 
 void highlighter_fwd( replxx_highlighter_callback_t fn, std::string const& input, replxx::Replxx::colors_t& colors, void* userData ) {
@@ -318,19 +324,19 @@ void highlighter_fwd( replxx_highlighter_callback_t fn, std::string const& input
 
 void replxx_set_highlighter_callback( ::Replxx* replxx_, replxx_highlighter_callback_t* fn, void* userData ) {
 	replxx::Replxx::ReplxxImpl* replxx( reinterpret_cast<replxx::Replxx::ReplxxImpl*>( replxx_ ) );
-	replxx->set_highlighter_callback( std::bind( &highlighter_fwd, fn, _1, _2, _3 ), userData );
+	replxx->set_highlighter_callback( std::bind( &highlighter_fwd, fn, _1, _2, userData ) );
 }
 
-replxx::Replxx::hints_t hints_fwd( replxx_hint_callback_t fn, std::string const& input_, int breakPos_, replxx::Replxx::Color& color_, void* userData ) {
+replxx::Replxx::hints_t hints_fwd( replxx_hint_callback_t fn, std::string const& input_, int& contextLen_, replxx::Replxx::Color& color_, void* userData ) {
 	replxx_hints hints;
 	ReplxxColor c( static_cast<ReplxxColor>( color_ ) );
-	fn( input_.c_str(), breakPos_, &hints, &c, userData );
+	fn( input_.c_str(), &hints, &contextLen_, &c, userData );
 	return ( hints.data );
 }
 
 void replxx_set_hint_callback( ::Replxx* replxx_, replxx_hint_callback_t* fn, void* userData ) {
 	replxx::Replxx::ReplxxImpl* replxx( reinterpret_cast<replxx::Replxx::ReplxxImpl*>( replxx_ ) );
-	replxx->set_hint_callback( std::bind( &hints_fwd, fn, _1, _2, _3, _4 ), userData );
+	replxx->set_hint_callback( std::bind( &hints_fwd, fn, _1, _2, _3, userData ) );
 }
 
 void replxx_add_hint(replxx_hints* lh, const char* str) {
@@ -364,11 +370,6 @@ void replxx_set_completion_count_cutoff( ::Replxx* replxx_, int count ) {
 void replxx_set_word_break_characters( ::Replxx* replxx_, char const* breakChars_ ) {
 	replxx::Replxx::ReplxxImpl* replxx( reinterpret_cast<replxx::Replxx::ReplxxImpl*>( replxx_ ) );
 	replxx->set_word_break_characters( breakChars_ );
-}
-
-void replxx_set_special_prefixes( ::Replxx* replxx_, char const* specialPrefixes_ ) {
-	replxx::Replxx::ReplxxImpl* replxx( reinterpret_cast<replxx::Replxx::ReplxxImpl*>( replxx_ ) );
-	replxx->set_special_prefixes( specialPrefixes_ );
 }
 
 void replxx_set_double_tab_completion( ::Replxx* replxx_, int val ) {

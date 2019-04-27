@@ -2,6 +2,8 @@
 #include "io.hxx"
 #include "keycodes.hxx"
 
+#ifndef _WIN32
+
 namespace replxx {
 
 namespace EscapeSequenceProcessing { // move these out of global namespace
@@ -113,13 +115,13 @@ static CharacterDispatch escLeftBracket1Semicolon3or5Dispatch = {
 // Handle ESC [ 1 ; <more stuff> escape sequences
 //
 static char32_t escLeftBracket1Semicolon3Routine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	thisKeyMetaCtrl |= META;
 	return doDispatch(c, escLeftBracket1Semicolon3or5Dispatch);
 }
 static char32_t escLeftBracket1Semicolon5Routine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	thisKeyMetaCtrl |= CTRL;
 	return doDispatch(c, escLeftBracket1Semicolon3or5Dispatch);
@@ -133,7 +135,7 @@ static CharacterDispatch escLeftBracket1SemicolonDispatch = {
 // Handle ESC [ 1 <more stuff> escape sequences
 //
 static char32_t escLeftBracket1SemicolonRoutine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	return doDispatch(c, escLeftBracket1SemicolonDispatch);
 }
@@ -191,7 +193,7 @@ static char32_t escLeftBracket0Routine(char32_t c) {
 	return escFailureRoutine(c);
 }
 static char32_t escLeftBracket1Routine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	return doDispatch(c, escLeftBracket1Dispatch);
 }
@@ -199,32 +201,32 @@ static char32_t escLeftBracket2Routine(char32_t c) {
 	return escFailureRoutine(c);	// Insert key, unused
 }
 static char32_t escLeftBracket3Routine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	return doDispatch(c, escLeftBracket3Dispatch);
 }
 static char32_t escLeftBracket4Routine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	return doDispatch(c, escLeftBracket4Dispatch);
 }
 static char32_t escLeftBracket5Routine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	return doDispatch(c, escLeftBracket5Dispatch);
 }
 static char32_t escLeftBracket6Routine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	return doDispatch(c, escLeftBracket6Dispatch);
 }
 static char32_t escLeftBracket7Routine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	return doDispatch(c, escLeftBracket7Dispatch);
 }
 static char32_t escLeftBracket8Routine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	return doDispatch(c, escLeftBracket8Dispatch);
 }
@@ -257,12 +259,12 @@ static CharacterDispatch escODispatch = {10, "ABCDHFabcd", escORoutines};
 // sequence
 //
 static char32_t escLeftBracketRoutine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	return doDispatch(c, escLeftBracketDispatch);
 }
 static char32_t escORoutine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	return doDispatch(c, escODispatch);
 }
@@ -274,7 +276,7 @@ static CharacterDispatch escDispatch = {2, "[O", escRoutines};
 // Initial dispatch -- we are not in the middle of anything yet
 //
 static char32_t escRoutine(char32_t c) {
-	c = readUnicodeCharacter();
+	c = read_unicode_character();
 	if (c == 0) return 0;
 	return doDispatch(c, escDispatch);
 }
@@ -287,7 +289,7 @@ static CharacterDispatch initialDispatch = {2, "\x1B\x7F", initialRoutines};
 static char32_t setMetaRoutine(char32_t c) {
 	thisKeyMetaCtrl = META;
 	if (c == 0x1B) {	// another ESC, stay in ESC processing mode
-		c = readUnicodeCharacter();
+		c = read_unicode_character();
 		if (c == 0) return 0;
 		return doDispatch(c, escDispatch);
 	}
@@ -302,4 +304,6 @@ char32_t doDispatch(char32_t c) {
 }	// namespace EscapeSequenceProcessing // move these out of global namespace
 
 }
+
+#endif /* #ifndef _WIN32 */
 

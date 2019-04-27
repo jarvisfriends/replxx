@@ -36,6 +36,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
   set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE} ${BASE_COMPILER_OPTIONS} -O3 -fomit-frame-pointer")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${BASE_COMPILER_OPTIONS} -O3 -g")
+	set(CMAKE_C_FLAGS "-std=c99")
   include(cmake/CodeCoverage.cmake)
   SETUP_TARGET_FOR_COVERAGE_LCOV(
     NAME ${PROJECT_NAME}_coverage
@@ -52,6 +53,7 @@ elseif(CMAKE_COMPILER_IS_CLANGCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
   set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE} ${BASE_COMPILER_OPTIONS} -O3 -fomit-frame-pointer")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${BASE_COMPILER_OPTIONS} -O3 -g")
+	set(CMAKE_C_FLAGS "-std=c99")
   include(cmake/CodeCoverage.cmake)
   SETUP_TARGET_FOR_COVERAGE_LCOV(
     NAME ${PROJECT_NAME}_coverage
@@ -76,7 +78,7 @@ else()
   set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL} ${BASE_COMPILER_OPTIONS} -Os")
   set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE} ${BASE_COMPILER_OPTIONS} -O3 -fomit-frame-pointer")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${BASE_COMPILER_OPTIONS} -O3 -g")
-
+	set(CMAKE_C_FLAGS "-std=c99")
 endif()
 
 set(SRC_FILES
@@ -155,11 +157,13 @@ if (${PROJECT_NAME_UPPER}_BuildExamples)
     add_executable(
         example-c-api
         examples/c-api.c
+        examples/util.c
     )
 
     add_executable(
         example-cxx-api
         examples/cxx-api.cxx
+        examples/util.c
     )
 
     target_link_libraries(

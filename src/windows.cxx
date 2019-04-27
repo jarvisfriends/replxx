@@ -94,8 +94,10 @@ T* HandleEsc(T* p, T* end) {
 	}
 
 	auto handle = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleTextAttribute(handle,
-													WIN_ATTR._consoleAttribute | WIN_ATTR._consoleColor);
+	SetConsoleTextAttribute(
+		handle,
+		WIN_ATTR._consoleAttribute | WIN_ATTR._consoleColor
+	);
 
 	return p;
 }
@@ -109,9 +111,10 @@ int win_write( char const* str_, int size_ ) {
 		UINT outputCodePage( GetConsoleOutputCP() );
 		SetConsoleCP( 65001 );
 		SetConsoleOutputCP( 65001 );
+		DWORD nWritten( 0 );
 		if ( SetConsoleMode( consoleOut, currentMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING ) ) {
-			WriteConsoleA( consoleOut, str_, size_, nullptr, nullptr );
-			count = size_;
+			WriteConsoleA( consoleOut, str_, size_, &nWritten, nullptr );
+			count = nWritten;
 			SetConsoleMode( consoleOut, currentMode );
 		} else {
 			char const* s( str_ );
@@ -119,25 +122,32 @@ int win_write( char const* str_, int size_ ) {
 			while ( str_ < e ) {
 				if ( *str_ == 27 ) {
 					if ( s < str_ ) {
-						WriteConsoleA( consoleOut, s, static_cast<DWORD>( str_ - s ), nullptr, nullptr );
-						count += ( str_ - s );
+						int toWrite( str_ - s );
+						WriteConsoleA( consoleOut, s, static_cast<DWORD>( toWrite ), &nWritten, nullptr );
+						count += nWritten;
+						if ( nWritten != toWrite ) {
+							s = str_ = nullptr;
+							break;
+						}
 					}
-					str_ = s = HandleEsc( str_ + 1, e );
+					s = HandleEsc( str_ + 1, e );
+					int escaped( s - str_);
+					count += escaped;
+					str_ = s;
 				} else {
 					++ str_;
 				}
 			}
 
 			if ( s < str_ ) {
-				WriteConsoleA( consoleOut, s, static_cast<DWORD>( str_ - s ), nullptr, nullptr );
-				count += ( str_ - s );
+				WriteConsoleA( consoleOut, s, static_cast<DWORD>( str_ - s ), &nWritten, nullptr );
+				count += nWritten;
 			}
 		}
 		SetConsoleCP( inputCodePage );
 		SetConsoleOutputCP( outputCodePage );
 	} else {
-		_write( 1, str_, size_ );
-		count = size_;
+		count = _write( 1, str_, size_ );
 	}
 	return ( count );
 }

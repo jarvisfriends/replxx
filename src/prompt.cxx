@@ -19,146 +19,132 @@
 
 #include "prompt.hxx"
 #include "util.hxx"
-#include "io.hxx"
 
 namespace replxx {
 
-bool PromptBase::write() {
-	return write32(1, promptText.get(), promptBytes) != -1;
-
+Prompt::Prompt( Terminal& terminal_ )
+	: _extraLines( 0 )
+	, _lastLinePosition( 0 )
+	, _previousInputLen( 0 )
+	, _previousLen( 0 )
+	, _screenColumns( 0 )
+	, _terminal( terminal_ ) {
+	update_screen_columns();
 }
 
-PromptInfo::PromptInfo(std::string const& text_, int columns) {
-	promptExtraLines = 0;
-	promptLastLinePosition = 0;
-	promptPreviousLen = 0;
-	promptScreenColumns = columns;
-	Utf32String tempUnicode(text_.c_str());
+void Prompt::write() {
+	_terminal.write32( _text.get(), _byteCount );
+}
+
+void Prompt::update_screen_columns( void ) {
+	_screenColumns = _terminal.get_screen_columns();
+}
+
+void Prompt::set_text( std::string const& text_ ) {
+	UnicodeString tempUnicode( text_ );
 
 	// strip control characters from the prompt -- we do allow newline
-	char32_t* pIn = tempUnicode.get();
-	char32_t* pOut = pIn;
+	UnicodeString::const_iterator in( tempUnicode.begin() );
+	UnicodeString::iterator out( tempUnicode.begin() );
 
 	int len = 0;
 	int x = 0;
 
 	bool const strip = !tty::out;
 
-	while (*pIn) {
-		char32_t c = *pIn;
+	while (in != tempUnicode.end()) {
+		char32_t c = *in;
 		if ('\n' == c || !isControlChar(c)) {
-			*pOut = c;
-			++pOut;
-			++pIn;
+			*out = c;
+			++out;
+			++in;
 			++len;
-			if ('\n' == c || ++x >= promptScreenColumns) {
+			if ('\n' == c || ++x >= _screenColumns) {
 				x = 0;
-				++promptExtraLines;
-				promptLastLinePosition = len;
+				++_extraLines;
+				_lastLinePosition = len;
 			}
 		} else if (c == '\x1b') {
-			if (strip) {
+			if ( strip ) {
 				// jump over control chars
-				++pIn;
-				if (*pIn == '[') {
-					++pIn;
-					while (*pIn && ((*pIn == ';') || ((*pIn >= '0' && *pIn <= '9')))) {
-						++pIn;
+				++in;
+				if (*in == '[') {
+					++in;
+					while ( ( in != tempUnicode.end() ) && ( ( *in == ';' ) || ( ( ( *in >= '0' ) && ( *in <= '9' ) ) ) ) ) {
+						++in;
 					}
-					if (*pIn == 'm') {
-						++pIn;
+					if (*in == 'm') {
+						++in;
 					}
 				}
 			} else {
 				// copy control chars
-				*pOut = *pIn;
-				++pOut;
-				++pIn;
-				if (*pIn == '[') {
-					*pOut = *pIn;
-					++pOut;
-					++pIn;
-					while (*pIn && ((*pIn == ';') || ((*pIn >= '0' && *pIn <= '9')))) {
-						*pOut = *pIn;
-						++pOut;
-						++pIn;
+				*out = *in;
+				++out;
+				++in;
+				if (*in == '[') {
+					*out = *in;
+					++out;
+					++in;
+					while ( ( in != tempUnicode.end() ) && ( ( *in == ';' ) || ( ( ( *in >= '0' ) && ( *in <= '9' ) ) ) ) ) {
+						*out = *in;
+						++out;
+						++in;
 					}
-					if (*pIn == 'm') {
-						*pOut = *pIn;
-						++pOut;
-						++pIn;
+					if (*in == 'm') {
+						*out = *in;
+						++out;
+						++in;
 					}
 				}
 			}
 		} else {
-			++pIn;
+			++in;
 		}
 	}
-	*pOut = 0;
-	promptChars = len;
-	promptBytes = static_cast<int>(pOut - tempUnicode.get());
-	promptText = tempUnicode;
+	_characterCount = len;
+	_byteCount = static_cast<int>(out - tempUnicode.begin());
+	_text = tempUnicode;
 
-	promptIndentation = len - promptLastLinePosition;
-	promptCursorRowOffset = promptExtraLines;
+	_indentation = len - _lastLinePosition;
+	_cursorRowOffset = _extraLines;
 }
 
 // Used with DynamicPrompt (history search)
 //
-const Utf32String forwardSearchBasePrompt("(i-search)`");
-const Utf32String reverseSearchBasePrompt("(reverse-i-search)`");
-const Utf32String endSearchBasePrompt("': ");
-Utf32String previousSearchText;	// remembered across invocations of replxx_input()
+const UnicodeString forwardSearchBasePrompt("(i-search)`");
+const UnicodeString reverseSearchBasePrompt("(reverse-i-search)`");
+const UnicodeString endSearchBasePrompt("': ");
+UnicodeString previousSearchText;	// remembered across invocations of replxx_input()
 
-DynamicPrompt::DynamicPrompt(PromptBase& pi, int initialDirection)
-		: direction(initialDirection) {
-	promptScreenColumns = pi.promptScreenColumns;
-	promptCursorRowOffset = 0;
-	const Utf32String* basePrompt =
-			(direction > 0) ? &forwardSearchBasePrompt : &reverseSearchBasePrompt;
+DynamicPrompt::DynamicPrompt( Terminal& terminal_, int initialDirection )
+	: Prompt( terminal_ )
+	, _searchText()
+	, _direction( initialDirection ) {
+	_cursorRowOffset = 0;
+	const UnicodeString* basePrompt =
+			(_direction > 0) ? &forwardSearchBasePrompt : &reverseSearchBasePrompt;
 	size_t promptStartLength = basePrompt->length();
-	promptChars =
-			static_cast<int>(promptStartLength + endSearchBasePrompt.length());
-	promptBytes = promptChars;
-	promptLastLinePosition = promptChars;	// TODO fix this, we are asssuming
-																				 // that the history prompt won't wrap
-																				 // (!)
-	promptPreviousLen = promptChars;
-	Utf32String tempUnicode(promptChars + 1);
-	memcpy(tempUnicode.get(), basePrompt->get(),
-				 sizeof(char32_t) * promptStartLength);
-	memcpy(&tempUnicode[promptStartLength], endSearchBasePrompt.get(),
-				 sizeof(char32_t) * (endSearchBasePrompt.length() + 1));
-	tempUnicode.initFromBuffer();
-	promptText = tempUnicode;
-	calculateScreenPosition(0, 0, pi.promptScreenColumns, promptChars,
-													promptIndentation, promptExtraLines);
+	_characterCount = static_cast<int>(promptStartLength + endSearchBasePrompt.length());
+	_byteCount = _characterCount;
+	_lastLinePosition = _characterCount; // TODO fix this, we are asssuming
+	                                        // that the history prompt won't wrap (!)
+	_previousLen = _characterCount;
+	_text.assign( *basePrompt ).append( endSearchBasePrompt );
+	calculateScreenPosition(
+		0, 0, screen_columns(), _characterCount,
+		_indentation, _extraLines
+	);
 }
 
-void DynamicPrompt::updateSearchPrompt() {
-	const Utf32String* basePrompt =
-			(direction > 0) ? &forwardSearchBasePrompt : &reverseSearchBasePrompt;
+void DynamicPrompt::updateSearchPrompt(void) {
+	const UnicodeString* basePrompt =
+			(_direction > 0) ? &forwardSearchBasePrompt : &reverseSearchBasePrompt;
 	size_t promptStartLength = basePrompt->length();
-	promptChars = static_cast<int>(promptStartLength + searchTextLen +
+	_characterCount = static_cast<int>(promptStartLength + _searchText.length() +
 																 endSearchBasePrompt.length());
-	promptBytes = promptChars;
-	Utf32String tempUnicode(promptChars + 1);
-	memcpy(tempUnicode.get(), basePrompt->get(),
-				 sizeof(char32_t) * promptStartLength);
-	memcpy(&tempUnicode[promptStartLength], searchText.get(),
-				 sizeof(char32_t) * searchTextLen);
-	size_t endIndex = promptStartLength + searchTextLen;
-	memcpy(&tempUnicode[endIndex], endSearchBasePrompt.get(),
-				 sizeof(char32_t) * (endSearchBasePrompt.length() + 1));
-	tempUnicode.initFromBuffer();
-	promptText = tempUnicode;
-}
-
-void DynamicPrompt::updateSearchText(const char32_t* text_) {
-	Utf32String tempUnicode(text_);
-	searchTextLen = static_cast<int>(tempUnicode.length());
-	searchText = tempUnicode;
-	updateSearchPrompt();
+	_byteCount = _characterCount;
+	_text.assign( *basePrompt ).append( _searchText ).append( endSearchBasePrompt );
 }
 
 }

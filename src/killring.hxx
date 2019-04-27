@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "utfstring.hxx"
+#include "unicodestring.hxx"
 
 namespace replxx {
 
@@ -12,7 +12,7 @@ class KillRing {
 	int size;
 	int index;
 	char indexToSlot[10];
-	std::vector<Utf32String> theRing;
+	std::vector<UnicodeString> theRing;
 
 public:
 	enum action { actionOther, actionKill, actionYank };
@@ -27,22 +27,16 @@ public:
 		if (textLen == 0) {
 			return;
 		}
-		Utf32String killedText(text, textLen);
+		UnicodeString killedText(text, textLen);
 		if (lastAction == actionKill && size > 0) {
 			int slot = indexToSlot[0];
 			int currentLen = static_cast<int>(theRing[slot].length());
-			int resultLen = currentLen + textLen;
-			Utf32String temp(resultLen + 1);
-			if (forward) {
-				memcpy(temp.get(), theRing[slot].get(), currentLen * sizeof(char32_t));
-				memcpy(&temp[currentLen], killedText.get(), textLen * sizeof(char32_t));
+			UnicodeString temp;
+			if ( forward ) {
+				temp.append( theRing[slot].get(), currentLen ).append( killedText.get(), textLen );
 			} else {
-				memcpy(temp.get(), killedText.get(), textLen * sizeof(char32_t));
-				memcpy(&temp[textLen], theRing[slot].get(),
-							 currentLen * sizeof(char32_t));
+				temp.append( killedText.get(), textLen ).append( theRing[slot].get(), currentLen );
 			}
-			temp[resultLen] = 0;
-			temp.initFromBuffer();
 			theRing[slot] = temp;
 		} else {
 			if (size < capacity) {
@@ -62,9 +56,9 @@ public:
 		}
 	}
 
-	Utf32String* yank() { return (size > 0) ? &theRing[indexToSlot[index]] : 0; }
+	UnicodeString* yank() { return (size > 0) ? &theRing[indexToSlot[index]] : 0; }
 
-	Utf32String* yankPop() {
+	UnicodeString* yankPop() {
 		if (size == 0) {
 			return 0;
 		}
